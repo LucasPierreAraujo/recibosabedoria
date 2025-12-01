@@ -72,7 +72,7 @@ const ReciboMaconico = () => {
     'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
   ];
-  const taxas = ['INICIAÇÃO', 'ELEIÇÃO', 'EXALTAÇÃO', 'INSTALAÇÃO', 'REGULARIZAÇÃO', 'QUITE PLACET'];
+  const taxas = ['INICIAÇÃO', 'ELEIÇÃO', 'PASSAGEM DE GRAU', 'ELEVAÇÃO' , 'INSTALAÇÃO', 'REGULARIZAÇÃO', 'QUITE PLACET'];
 
   const [pdfGerado, setPdfGerado] = useState(false);
 
