@@ -100,11 +100,31 @@ const ReciboMaconico = () => {
 
   const gerarPDF = () => setPdfGerado(true);
 
+  // 🚀 FUNÇÃO EXPORTAR PDF MODIFICADA
   const exportarPDF = async () => {
     const recibo = document.getElementById('recibo-content');
     
+    // Armazena estilos e classes originais
+    const originalStyle = recibo.style.cssText;
+    const originalClassName = recibo.className;
+
+    // *** 1. FORÇA O ESTILO DE DESKTOP/IMPRESSÃO ***
+    // 1024px é o breakpoint 'lg' ou 'xl' do Tailwind, que representa o desktop.
+    // Isso garante que os estilos "md:" e acima sejam aplicados no canvas.
+    const DESKTOP_WIDTH = '1024px'; 
+    
+    // Remove o overflow-x:auto (que causa rolagem no mobile) e força a largura de desktop.
+    recibo.style.maxWidth = DESKTOP_WIDTH; 
+    recibo.style.width = DESKTOP_WIDTH; // Garante que a largura seja considerada
+    recibo.style.overflowX = 'hidden';
+    
+    // Ajusta classes Tailwind para forçar o layout de desktop (p-8 em vez de p-4, remove overflow-x-auto)
+    recibo.classList.remove('p-4', 'overflow-x-auto');
+    recibo.classList.add('p-8');
+    // **********************************************
+    
     try {
-      // Carrega html2canvas se não estiver carregado
+      // Carrega html2canvas
       if (!window.html2canvas) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -115,7 +135,7 @@ const ReciboMaconico = () => {
         });
       }
       
-      // Carrega jsPDF se não estiver carregado
+      // Carrega jsPDF
       if (!window.jspdf) {
         await new Promise((resolve, reject) => {
           const script = document.createElement('script');
@@ -126,16 +146,18 @@ const ReciboMaconico = () => {
         });
       }
       
-      // Gera o canvas
+      // *** 2. GERA O CANVAS COM WIDHT FORÇADA ***
       const canvas = await window.html2canvas(recibo, {
         scale: 2,
         useCORS: true,
         logging: false,
         backgroundColor: '#ffffff',
-        windowWidth: recibo.scrollWidth,
-        windowHeight: recibo.scrollHeight
+        // O valor de windowWidth deve corresponder ao DESKTOP_WIDTH acima
+        windowWidth: 1024, 
+        windowHeight: recibo.scrollHeight // Altura calculada normalmente
       });
-      
+      // *****************************************
+
       // Cria o PDF
       const imgData = canvas.toDataURL('image/png');
       const { jsPDF } = window.jspdf;
@@ -152,7 +174,7 @@ const ReciboMaconico = () => {
       let finalWidth = pdfWidth;
       let finalHeight = pdfWidth / ratio;
       
-      // Se a altura calculada for maior que a página, ajusta pela altura
+      // Ajuste de escala para caber na página
       if (finalHeight > pdfHeight) {
         finalHeight = pdfHeight;
         finalWidth = pdfHeight * ratio;
@@ -174,8 +196,14 @@ const ReciboMaconico = () => {
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Erro ao gerar PDF: ' + error.message);
+    } finally {
+      // *** 3. RESTAURA OS ESTILOS ORIGINAIS ***
+      recibo.style.cssText = originalStyle;
+      recibo.className = originalClassName;
+      // **************************************
     }
   };
+  // 🔚 FIM DA FUNÇÃO EXPORTAR PDF MODIFICADA
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
@@ -316,7 +344,8 @@ const ReciboMaconico = () => {
         </div>
 
         {/* Recibo */}
-        <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto" style={{ maxWidth: '100%' }}>
+        {/* Adicionei 'max-w-4xl' aqui para garantir que o layout de desktop base seja mantido para a visualização */}
+        <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto max-w-4xl mx-auto" style={{ maxWidth: '100%' }}>
           {/* Header */}
           <div className="border-4 border-black rounded-lg p-3 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex-1 w-full">
@@ -325,6 +354,7 @@ const ReciboMaconico = () => {
                 A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774
               </div>
             </div>
+            {/* O caminho da imagem deve estar acessível! */}
             <div className="w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
               <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
             </div>
