@@ -89,10 +89,8 @@ const ReciboMaconico = () => {
       const centavos = Math.round((numero - inteiro) * 100);
       let extenso = (numeroParaExtenso(inteiro) + (inteiro === 1 ? " real" : " reais")).toUpperCase();
 
-
-
       if (centavos > 0) {
-        extenso += " e " + numeroParaExtenso(centavos) + " centavo" + (centavos > 1 ? "s" : "");
+        extenso += " E " + numeroParaExtenso(centavos).toUpperCase() + " CENTAVO" + (centavos > 1 ? "S" : "");
       }
       setValorExtenso(extenso);
     } else {
@@ -104,35 +102,89 @@ const ReciboMaconico = () => {
 
   const exportarPDF = async () => {
     const recibo = document.getElementById('recibo-content');
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-    document.head.appendChild(script);
-    script.onload = async () => {
+    
+    try {
+      // Carrega html2canvas se não estiver carregado
+      if (!window.html2canvas) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      
+      // Carrega jsPDF se não estiver carregado
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+      
+      // Gera o canvas
       const canvas = await window.html2canvas(recibo, {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        windowWidth: recibo.scrollWidth,
+        windowHeight: recibo.scrollHeight
       });
-      canvas.toBlob((blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `recibo_${recebemosDe.replace(/\s+/g, '_')}_${new Date().getTime()}.png`;
-        link.click();
-        URL.revokeObjectURL(url);
+      
+      // Cria o PDF
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      
+      // Calcula dimensões
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+      const ratio = imgWidth / imgHeight;
+      
+      // Define o PDF em modo paisagem A4
+      const pdfWidth = 297; // A4 landscape em mm
+      const pdfHeight = 210; // A4 landscape em mm
+      
+      let finalWidth = pdfWidth;
+      let finalHeight = pdfWidth / ratio;
+      
+      // Se a altura calculada for maior que a página, ajusta pela altura
+      if (finalHeight > pdfHeight) {
+        finalHeight = pdfHeight;
+        finalWidth = pdfHeight * ratio;
+      }
+      
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
       });
-    };
+      
+      // Centraliza a imagem no PDF
+      const xOffset = (pdfWidth - finalWidth) / 2;
+      const yOffset = (pdfHeight - finalHeight) / 2;
+      
+      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+      pdf.save(`recibo_${recebemosDe.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
+      
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF: ' + error.message);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Formulário */}
-        <div className="bg-white p-6 rounded-lg shadow-lg mb-6">
-          <h2 className="text-2xl font-bold mb-4 text-black">Preencher Dados do Recibo</h2>
+        <div className="bg-white p-4 md:p-6 rounded-lg shadow-lg mb-6">
+          <h2 className="text-xl md:text-2xl font-bold mb-4 text-black">Preencher Dados do Recibo</h2>
 
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-sm font-bold mb-1 text-black">Valor (R$)</label>
               <input
@@ -165,7 +217,7 @@ const ReciboMaconico = () => {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-bold mb-1 text-black">Referente ao mês de</label>
               <select
@@ -173,6 +225,7 @@ const ReciboMaconico = () => {
                 onChange={(e) => setMesReferente(e.target.value)}
                 className="w-full border-2 border-black rounded px-3 py-2 text-black font-semibold"
               >
+                <option value="">Selecione</option>
                 {meses.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
@@ -194,13 +247,14 @@ const ReciboMaconico = () => {
                 onChange={(e) => setTaxaDe(e.target.value)}
                 className="w-full border-2 border-black rounded px-3 py-2 text-black font-semibold"
               >
+                <option value="">Selecione</option>
                 {taxas.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
 
           {/* Dia e mês completos */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div>
               <label className="block text-sm font-bold mb-1 text-black">Local</label>
               <input
@@ -253,7 +307,7 @@ const ReciboMaconico = () => {
           {!pdfGerado && (
             <button
               onClick={gerarPDF}
-              className="bg-blue-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-blue-700 inline-flex items-center gap-2"
+              className="w-full md:w-auto bg-blue-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-blue-700 inline-flex items-center justify-center gap-2"
             >
               <Download size={20} />
               Gerar Recibo (Pré-visualizar)
@@ -262,16 +316,16 @@ const ReciboMaconico = () => {
         </div>
 
         {/* Recibo */}
-        <div id="recibo-content" className="bg-white p-8" style={{ width: '210mm', minHeight: '148mm' }}>
+        <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto" style={{ maxWidth: '100%' }}>
           {/* Header */}
-          <div className="border-4 border-black rounded-lg p-4 mb-4 flex items-center justify-between">
-            <div className="flex-1">
+          <div className="border-4 border-black rounded-lg p-3 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex-1 w-full">
               <div className="text-xs mb-2 text-black">Loja nº:</div>
               <div className="text-center font-bold text-sm pt-6 text-black">
                 A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774
               </div>
             </div>
-            <div className="w-32 h-32 ml-4 flex items-center justify-center">
+            <div className="w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
               <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
             </div>
           </div>
@@ -279,17 +333,17 @@ const ReciboMaconico = () => {
           {/* Recebemos de */}
           <div className="mb-3">
             <span className="text-sm font-bold text-black">Recebemos de(a):</span>
-            <div className="border-2 border-black rounded-lg px-3 py-2 mt-1 text-black">{recebemosDe}</div>
+            <div className="border-2 border-black rounded-lg px-3 py-2 mt-1 text-black break-words">{recebemosDe}</div>
           </div>
 
           {/* Valor por extenso */}
           <div className="mb-3">
             <span className="text-sm font-bold text-black">O valor de:</span>
-            <div className="border-2 border-black rounded-lg px-3 py-2 mt-1 text-black">{valorExtenso}</div>
+            <div className="border-2 border-black rounded-lg px-3 py-2 mt-1 text-black break-words">{valorExtenso}</div>
           </div>
 
           {/* Checkboxes de dia e mês */}
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 border-2 border-black rounded-lg p-3">
               <div className="mb-2 text-black">
                 <div className="text-xs mb-1 font-bold">Dia:</div>
@@ -332,7 +386,7 @@ const ReciboMaconico = () => {
             </div>
 
             {/* Recibo R$ */}
-            <div className="w-64">
+            <div className="w-full md:w-64">
               <div className="text-4xl font-bold mb-2 text-center text-black">RECIBO</div>
               <div className="border-4 border-black rounded-lg p-4 flex items-center justify-between">
                 <span className="text-3xl font-bold text-black">R$</span>
@@ -342,16 +396,16 @@ const ReciboMaconico = () => {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between items-end text-sm pt-6 text-black">
-            <div className="flex gap-2 items-center">
-              <span>{dataLocal} - CE,</span>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end text-sm pt-6 text-black gap-4 md:gap-0">
+            <div className="flex gap-2 items-center flex-wrap">
+              <span>{dataLocal},</span>
               <span className="px-4">{dia}</span>
               <span>de</span>
               <span className="px-4">{mes}</span>
               <span>de</span>
               <span className="px-8">{ano}</span>
             </div>
-            <div className="w-64 text-center">
+            <div className="w-full md:w-64 text-center">
               <span>Tesoureiro</span>
             </div>
           </div>
@@ -361,10 +415,10 @@ const ReciboMaconico = () => {
           <div className="mt-6 text-center">
             <button
               onClick={exportarPDF}
-              className="bg-green-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-green-700 inline-flex items-center gap-2"
+              className="w-full md:w-auto bg-green-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-green-700 inline-flex items-center justify-center gap-2"
             >
               <FileDown size={20} />
-              Exportar e Salvar Recibo
+              Exportar e Salvar Recibo em PDF
             </button>
           </div>
         )}
