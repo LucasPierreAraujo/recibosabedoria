@@ -2,6 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Download, FileDown } from 'lucide-react';
 
+// 🚀 IMPORTAÇÕES DIRETAS para estabilidade em mobile
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
+
 // Função para converter números em valor por extenso
 const numeroParaExtenso = (numero) => {
   if (!numero) return "";
@@ -76,6 +81,36 @@ const ReciboMaconico = () => {
 
   const [pdfGerado, setPdfGerado] = useState(false);
 
+  // Função de formatação de valor monetário
+  const formatarValor = (valor) => {
+    // Remove tudo que não for número, exceto vírgula
+    let v = valor.replace(/\D/g, '');
+    
+    // Converte para centavos
+    v = (v / 100).toFixed(2) + '';
+    
+    // Troca o ponto pela vírgula
+    v = v.replace('.', ',');
+    
+    // Adiciona o ponto de milhar
+    v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    
+    return v;
+  };
+
+  const handleValorChange = (e) => {
+    const valorDigitado = e.target.value;
+    // Remove tudo que não for número
+    const numeros = valorDigitado.replace(/\D/g, '');
+    
+    // Formata o número (mantendo R$ no display)
+    if (numeros) {
+        setValor(formatarValor(numeros));
+    } else {
+        setValor('');
+    }
+  };
+
   // Atualiza valor por extenso automaticamente
   useEffect(() => {
     if (!valor) {
@@ -83,16 +118,27 @@ const ReciboMaconico = () => {
       return;
     }
 
+    // Converte o valor formatado (ex: "1.000,00") para número (ex: 1000.00)
     const numero = parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+    
     if (!isNaN(numero)) {
       const inteiro = Math.floor(numero);
       const centavos = Math.round((numero - inteiro) * 100);
-      let extenso = (numeroParaExtenso(inteiro) + (inteiro === 1 ? " real" : " reais")).toUpperCase();
+      
+      let extenso = "";
 
-      if (centavos > 0) {
-        extenso += " E " + numeroParaExtenso(centavos).toUpperCase() + " CENTAVO" + (centavos > 1 ? "S" : "");
+      if (inteiro > 0) {
+        extenso += numeroParaExtenso(inteiro) + (inteiro === 1 ? " REAL" : " REAIS");
       }
-      setValorExtenso(extenso);
+      
+      if (centavos > 0) {
+        if (inteiro > 0) {
+            extenso += " E ";
+        }
+        extenso += numeroParaExtenso(centavos) + (centavos === 1 ? " CENTAVO" : " CENTAVOS");
+      }
+      
+      setValorExtenso(extenso.toUpperCase());
     } else {
       setValorExtenso('');
     }
@@ -100,7 +146,7 @@ const ReciboMaconico = () => {
 
   const gerarPDF = () => setPdfGerado(true);
 
-  // 🚀 FUNÇÃO EXPORTAR PDF MODIFICADA
+  // 🛠️ FUNÇÃO EXPORTAR PDF REVISADA E OTIMIZADA PARA MOBILE
   const exportarPDF = async () => {
     const recibo = document.getElementById('recibo-content');
     
@@ -108,102 +154,68 @@ const ReciboMaconico = () => {
     const originalStyle = recibo.style.cssText;
     const originalClassName = recibo.className;
 
-    // *** 1. FORÇA O ESTILO DE DESKTOP/IMPRESSÃO ***
-    // 1024px é o breakpoint 'lg' ou 'xl' do Tailwind, que representa o desktop.
-    // Isso garante que os estilos "md:" e acima sejam aplicados no canvas.
+    // 1. FORÇA O ESTILO DE DESKTOP/IMPRESSÃO (Largura de desktop)
     const DESKTOP_WIDTH = '1024px'; 
     
-    // Remove o overflow-x:auto (que causa rolagem no mobile) e força a largura de desktop.
     recibo.style.maxWidth = DESKTOP_WIDTH; 
-    recibo.style.width = DESKTOP_WIDTH; // Garante que a largura seja considerada
+    recibo.style.width = DESKTOP_WIDTH; 
     recibo.style.overflowX = 'hidden';
     
-    // Ajusta classes Tailwind para forçar o layout de desktop (p-8 em vez de p-4, remove overflow-x-auto)
+    // Ajusta classes Tailwind para forçar o layout de desktop
     recibo.classList.remove('p-4', 'overflow-x-auto');
     recibo.classList.add('p-8');
-    // **********************************************
     
     try {
-      // Carrega html2canvas
-      if (!window.html2canvas) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
+        // 2. GERA O CANVAS (Usando a importação direta)
+        const canvas = await html2canvas(recibo, {
+            scale: 2, // Maior escala para melhor qualidade no PDF
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            windowWidth: 1024, // Força a renderização como se estivesse em desktop
+            windowHeight: recibo.scrollHeight
         });
-      }
-      
-      // Carrega jsPDF
-      if (!window.jspdf) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-        });
-      }
-      
-      // *** 2. GERA O CANVAS COM WIDHT FORÇADA ***
-      const canvas = await window.html2canvas(recibo, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        // O valor de windowWidth deve corresponder ao DESKTOP_WIDTH acima
-        windowWidth: 1024, 
-        windowHeight: recibo.scrollHeight // Altura calculada normalmente
-      });
-      // *****************************************
 
-      // Cria o PDF
-      const imgData = canvas.toDataURL('image/png');
-      const { jsPDF } = window.jspdf;
-      
-      // Calcula dimensões
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = imgWidth / imgHeight;
-      
-      // Define o PDF em modo paisagem A4
-      const pdfWidth = 297; // A4 landscape em mm
-      const pdfHeight = 210; // A4 landscape em mm
-      
-      let finalWidth = pdfWidth;
-      let finalHeight = pdfWidth / ratio;
-      
-      // Ajuste de escala para caber na página
-      if (finalHeight > pdfHeight) {
-        finalHeight = pdfHeight;
-        finalWidth = pdfHeight * ratio;
-      }
-      
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      // Centraliza a imagem no PDF
-      const xOffset = (pdfWidth - finalWidth) / 2;
-      const yOffset = (pdfHeight - finalHeight) / 2;
-      
-      pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
-      pdf.save(`recibo_${recebemosDe.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
-      
+        // 3. CRIA O PDF
+        const imgData = canvas.toDataURL('image/png');
+        
+        const imgWidth = canvas.width;
+        const imgHeight = canvas.height;
+        const ratio = imgWidth / imgHeight;
+        
+        const pdfWidth = 297; 
+        const pdfHeight = 210; 
+        
+        let finalWidth = pdfWidth;
+        let finalHeight = pdfWidth / ratio;
+        
+        if (finalHeight > pdfHeight) {
+            finalHeight = pdfHeight;
+            finalWidth = pdfHeight * ratio;
+        }
+        
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        const xOffset = (pdfWidth - finalWidth) / 2;
+        const yOffset = (pdfHeight - finalHeight) / 2;
+        
+        pdf.addImage(imgData, 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+        pdf.save(`recibo_${recebemosDe.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`);
+        
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      alert('Erro ao gerar PDF: ' + error.message);
+        console.error('Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF: ' + error.message);
     } finally {
-      // *** 3. RESTAURA OS ESTILOS ORIGINAIS ***
-      recibo.style.cssText = originalStyle;
-      recibo.className = originalClassName;
-      // **************************************
+        // 4. RESTAURA OS ESTILOS ORIGINAIS (CRUCIAL)
+        recibo.style.cssText = originalStyle;
+        recibo.className = originalClassName;
     }
   };
-  // 🔚 FIM DA FUNÇÃO EXPORTAR PDF MODIFICADA
+  // 🔚 FIM DA FUNÇÃO EXPORTAR PDF
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
@@ -218,9 +230,9 @@ const ReciboMaconico = () => {
               <input
                 type="text"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={handleValorChange} // Alterado para usar a função de formatação
                 className="w-full border-2 border-black rounded px-3 py-2 text-black font-semibold"
-                placeholder="1.000,00"
+                placeholder="0,00"
               />
             </div>
 
@@ -344,7 +356,6 @@ const ReciboMaconico = () => {
         </div>
 
         {/* Recibo */}
-        {/* Adicionei 'max-w-4xl' aqui para garantir que o layout de desktop base seja mantido para a visualização */}
         <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto max-w-4xl mx-auto" style={{ maxWidth: '100%' }}>
           {/* Header */}
           <div className="border-4 border-black rounded-lg p-3 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
