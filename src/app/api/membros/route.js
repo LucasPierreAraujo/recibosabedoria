@@ -1,6 +1,6 @@
 // app/api/membros/route.js
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../lib/prisma';
 
 // GET - Listar todos os membros
 export async function GET() {

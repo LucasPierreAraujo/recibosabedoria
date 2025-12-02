@@ -13,9 +13,13 @@ export default function DashboardPage() {
     }
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { 
+      method: 'POST',
+      credentials: 'include'
+    });
     router.push('/login');
+    router.refresh();
   };
 
   return (

@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",          // raiz do projeto
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]       // '@/lib/auth' -> 'src/lib/auth'
     }
   }
 }

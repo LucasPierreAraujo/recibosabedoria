@@ -1,11 +1,12 @@
 "use client"
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogIn } from 'lucide-react';
+import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -19,14 +20,15 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Importante para cookies
         body: JSON.stringify({ username, password })
       });
 
       const data = await response.json();
 
       if (data.success) {
-        localStorage.setItem('isAuthenticated', 'true');
         router.push('/dashboard');
+        router.refresh(); // Recarrega para aplicar o middleware
       } else {
         setError(data.message);
       }
@@ -44,7 +46,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             A.R.L.S. Sabedoria de Salomão Nº 4774
           </h1>
-          <p className="text-gray-600">Sistema de Gestão</p>
+          <p className="text-gray-600">Sistema de Gestão Seguro</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -58,6 +60,7 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:border-blue-600 focus:outline-none"
               placeholder="Digite seu usuário"
+              autoComplete="username"
               required
             />
           </div>
@@ -66,14 +69,24 @@ export default function LoginPage() {
             <label className="block text-sm font-bold mb-2 text-gray-700">
               Senha
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:border-blue-600 focus:outline-none"
-              placeholder="Digite sua senha"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-gray-800 focus:border-blue-600 focus:outline-none pr-12"
+                placeholder="Digite sua senha"
+                autoComplete="current-password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -91,6 +104,10 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-sm text-gray-600">
+          <p>🔒 Sistema com criptografia de ponta</p>
+        </div>
       </div>
     </div>
   );
