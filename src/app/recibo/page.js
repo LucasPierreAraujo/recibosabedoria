@@ -82,7 +82,7 @@ const ReciboMaconico = () => {
     'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
     'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
   ];
-  const taxas = ['INICIAÇÃO', 'ELEIÇÃO', 'PASSAGEM DE GRAU', 'ELEVAÇÃO', 'INSTALAÇÃO', 'REGULARIZAÇÃO', 'QUITE PLACET'];
+  const taxas = ['INICIAÇÃO', 'ELEIÇÃO', 'PASSAGEM DE GRAU', 'ELEVAÇÃO', 'INSTALAÇÃO', 'REGULARIZAÇÃO', 'REASSUNÇÃO', 'QUITE PLACET'];
 
   // Verifica autenticação e carrega membros
   useEffect(() => {
@@ -412,16 +412,16 @@ const ReciboMaconico = () => {
 
         {/* Recibo */}
         <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto max-w-4xl mx-auto" style={{ maxWidth: '100%' }}>
-          <div className="border-4 border-black rounded-lg p-3 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="border-4 border-black rounded-lg p-2 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex-1 w-full">
-              <div className="text-xs mb-2 text-black">Loja nº:</div>
-              <div className="text-center font-bold text-sm pt-6 text-black">
+              <div className="text-xs  mb-2 text-black">Loja nº:</div>
+              <div className="text-center font-bold text-xl  text-black">
                 A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774
               </div>
             </div>
-            <div className="w-24 h-24 md:w-32 md:h-32 flex items-center justify-center">
-              <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
-            </div>
+            <div className="w-10 h-16 md:w-22 md:h-22 flex items-center justify-center">
+                <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
+            </div>      
           </div>
 
           <div className="mb-3">
