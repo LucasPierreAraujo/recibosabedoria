@@ -209,7 +209,8 @@ export default function MembrosPage() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-max"></table>
               <thead className="bg-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-gray-700 font-bold">Nome</th>
