@@ -1,25 +1,9 @@
 // app/api/membros/route.js
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
-import { cookies } from 'next/headers';
-import { verifyToken } from '../../../lib/auth';
 
-async function checkAuth() {
-  const cookieStore = cookies();
-  const token = cookieStore.get('auth-token')?.value;
-
-  if (!token) return false;
-
-  const payload = await verifyToken(token);
-  return payload ? true : false;
-}
-
-// GET - Listar membros
+// GET - Listar todos os membros
 export async function GET() {
-  if (!(await checkAuth())) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
   try {
     const membros = await prisma.membro.findMany({
       orderBy: { dataCadastro: 'desc' }
@@ -31,14 +15,11 @@ export async function GET() {
   }
 }
 
-// POST - Adicionar
+// POST - Adicionar novo membro
 export async function POST(request) {
-  if (!(await checkAuth())) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
   try {
     const body = await request.json();
+    
     const membro = await prisma.membro.create({
       data: {
         nome: body.nome,
@@ -46,6 +27,7 @@ export async function POST(request) {
         status: body.status || 'ATIVO'
       }
     });
+    
     return NextResponse.json({ success: true, membro });
   } catch (error) {
     console.error('Erro ao adicionar membro:', error);
@@ -53,14 +35,11 @@ export async function POST(request) {
   }
 }
 
-// PUT - Atualizar
+// PUT - Atualizar membro
 export async function PUT(request) {
-  if (!(await checkAuth())) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
   try {
     const body = await request.json();
+    
     const membro = await prisma.membro.update({
       where: { id: body.id },
       data: {
@@ -69,6 +48,7 @@ export async function PUT(request) {
         status: body.status
       }
     });
+    
     return NextResponse.json({ success: true, membro });
   } catch (error) {
     console.error('Erro ao atualizar membro:', error);
@@ -76,15 +56,15 @@ export async function PUT(request) {
   }
 }
 
-// DELETE - Remover
+// DELETE - Remover membro
 export async function DELETE(request) {
-  if (!(await checkAuth())) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
-  }
-
   try {
     const body = await request.json();
-    await prisma.membro.delete({ where: { id: body.id } });
+    
+    await prisma.membro.delete({
+      where: { id: body.id }
+    });
+    
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Erro ao remover membro:', error);

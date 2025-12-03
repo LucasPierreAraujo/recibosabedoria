@@ -1,44 +1,35 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Users, LogOut } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/auth/me', { credentials: 'include' });
-        const data = await res.json();
-
-        if (!data.authenticated) {
-          router.push('/login');
-        } else {
-          setLoading(false);
-        }
-      } catch (err) {
-        router.push('/login');
-      }
+    const isAuth = localStorage.getItem('isAuthenticated');
+    if (!isAuth) {
+      router.push('/login');
     }
-
-    checkAuth();
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetch('/api/auth/logout', { 
+      method: 'POST',
+      credentials: 'include'
+    });
     router.push('/login');
+    router.refresh();
   };
-
-  if (loading) return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-blue-900 text-white p-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">A.R.L.S. Sabedoria de Salomão Nº 4774</h1>
+          <h1 className="text-2xl font-bold">
+            A.R.L.S. Sabedoria de Salomão Nº 4774
+          </h1>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition"
@@ -65,7 +56,9 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-800">Gerar Recibo</h3>
             </div>
-            <p className="text-gray-600">Crie e exporte recibos em PDF para os membros da loja</p>
+            <p className="text-gray-600">
+              Crie e exporte recibos em PDF para os membros da loja
+            </p>
           </div>
 
           {/* Card Gerenciar Membros */}
@@ -79,7 +72,9 @@ export default function DashboardPage() {
               </div>
               <h3 className="text-2xl font-bold text-gray-800">Gerenciar Membros</h3>
             </div>
-            <p className="text-gray-600">Adicione, edite ou remova membros do cadastro da loja</p>
+            <p className="text-gray-600">
+              Adicione, edite ou remova membros do cadastro da loja
+            </p>
           </div>
         </div>
       </main>
