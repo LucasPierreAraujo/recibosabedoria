@@ -1,20 +1,35 @@
-export default function middleware(req) {
+import { NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
+
+const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
+
+export async function middleware(req) {
   const { pathname } = req.nextUrl;
-  console.log("Middleware ativo em:", pathname);
 
-  const token = req.cookies.get('auth-token')?.value;
-  console.log("token", token);
-  const isLogged = !!token;
+  // Só proteger rota dashboard
+  if (pathname.startsWith('/dashboard')) {
+    const token = req.cookies.get('auth-token')?.value;
 
-  if (pathname.startsWith('/dashboard') && !isLogged) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    return Response.redirect(url);
+    if (!token) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    // Verifica se o token é válido
+    try {
+      await jwtVerify(token, SECRET_KEY);
+      return NextResponse.next();
+    } catch (err) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
   }
-  console.log('carregou no fim do middleware');
-  return;
+
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],  
+  matcher: ['/dashboard/:path*', '/dashboard'],
 };
