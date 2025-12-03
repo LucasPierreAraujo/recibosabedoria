@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Edit, ArrowLeft, Save, X } from 'lucide-react';
 
@@ -15,8 +15,14 @@ export default function MembrosPage() {
     status: 'ATIVO'
   });
 
+  useEffect(() => {
+  carregarMembros();
+  }, []);
+
   const graus = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'CANDIDATO' ];
   const statusOptions = ['ATIVO', 'INATIVO'];
+
+    
 
   const carregarMembros = async () => {
     setLoading(true);
