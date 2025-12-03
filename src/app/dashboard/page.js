@@ -1,17 +1,10 @@
 "use client"
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Users, LogOut } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-
-  useEffect(() => {
-    const isAuth = localStorage.getItem('isAuthenticated');
-    if (!isAuth) {
-      router.push('/login');
-    }
-  }, [router]);
 
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { 
