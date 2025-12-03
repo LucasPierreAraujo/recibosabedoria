@@ -6,8 +6,11 @@ const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 export async function middleware(req) {
   const { pathname } = req.nextUrl;
 
-  // Só proteger rota dashboard
-  if (pathname.startsWith('/dashboard')) {
+  // Rotas protegidas (precisa estar logado)
+  const protectedPaths = ['/dashboard', '/membros', '/recibo'];
+  const isProtected = protectedPaths.some(path => pathname.startsWith(path));
+
+  if (isProtected) {
     const token = req.cookies.get('auth-token')?.value;
 
     if (!token) {
@@ -31,5 +34,5 @@ export async function middleware(req) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/dashboard'],
+  matcher: ['/dashboard/:path*', '/membros/:path*', '/recibo/:path*'],
 };
