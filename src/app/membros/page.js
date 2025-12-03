@@ -202,7 +202,8 @@ export default function MembrosPage() {
             Nenhum membro cadastrado
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden overflow-x-auto">
+          // Aqui foi feita a mudança: removido overflow-hidden e adicionado relative
+          <div className="bg-white rounded-lg shadow-lg overflow-x-auto relative">
             <table className="w-full min-w-max">
               <thead className="bg-gray-200">
                 <tr>
