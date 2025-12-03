@@ -1,81 +1,63 @@
-'use client';
+  // app/api/auth/login/route.js
+  import { NextResponse } from 'next/server';
+  import { prisma } from '../../../../lib/prisma';
+  import { verifyPassword, createToken } from '../../../../lib/auth';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
+  export async function POST(request) {
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+      const { username, password } = await request.json();
+      
+      // Busca usuário no banco
+      const user = await prisma.user.findUnique({
+        where: { username }
       });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        setError(data.message || 'Erro no login');
-      } else {
-        console.log('Login bem-sucedido:', data.user);
-        // Redirecionar para página protegida
-        router.push('/dashboard'); 
+      
+      if (!user) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Usuário ou senha incorretos' 
+        }, { status: 401 });
       }
-    } catch (err) {
-      console.error('Erro ao chamar API:', err);
-      setError('Erro ao conectar com o servidor');
-    } finally {
-      setLoading(false);
+      
+      // Verifica a senha
+      const isValid = await verifyPassword(password, user.password);
+      
+      if (!isValid) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'Usuário ou senha incorretos' 
+        }, { status: 401 });
+      }
+      
+      // Cria token JWT
+      const token = await createToken({ 
+        userId: user.id, 
+        username: user.username 
+      });
+      
+      // Cria resposta com cookie HTTP-only
+      const response = NextResponse.json({ 
+        success: true, 
+        message: 'Login realizado com sucesso',
+        user: { username: user.username }
+      });
+      
+      // Define cookie seguro
+      response.cookies.set('auth-token', token, {
+        httpOnly: true,      // Não acessível via JavaScript
+        secure: process.env.NODE_ENV === 'production', // HTTPS em produção
+        sameSite: 'lax',
+        maxAge: 60 * 60 * 24 * 7, // 7 dias
+        path: '/'
+      });
+      
+      return response;
+      
+    } catch (error) {
+      console.error('Erro no login:', error);
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Erro no servidor' 
+      }, { status: 500 });
     }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
-
-        {error && (
-          <div className="bg-red-100 text-red-700 p-2 mb-4 rounded">{error}</div>
-        )}
-
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Usuário"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="border p-2 rounded"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Senha"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="border p-2 rounded"
-            required
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
-          >
-            {loading ? 'Entrando...' : 'Entrar'}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
+  }
