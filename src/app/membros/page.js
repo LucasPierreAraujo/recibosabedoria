@@ -9,7 +9,6 @@ export default function MembrosPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [showMenu, setShowMenu] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     grau: '',
@@ -202,8 +201,7 @@ export default function MembrosPage() {
             Nenhum membro cadastrado
           </div>
         ) : (
-          // Aqui foi feita a mudança: removido overflow-hidden e adicionado relative
-          <div className="bg-white rounded-lg shadow-lg overflow-x-auto relative">
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden overflow-x-auto">
             <table className="w-full min-w-max">
               <thead className="bg-gray-200">
                 <tr>
@@ -228,8 +226,8 @@ export default function MembrosPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      {/* Desktop buttons */}
-                      <div className="hidden md:flex gap-2 justify-center">
+                      {/* Apenas ícones, desktop e mobile */}
+                      <div className="flex gap-2 justify-center">
                         <button
                           onClick={() => handleEdit(membro)}
                           className="text-blue-600 hover:text-blue-800"
@@ -242,35 +240,6 @@ export default function MembrosPage() {
                         >
                           <Trash2 size={20} />
                         </button>
-                      </div>
-
-                      {/* Mobile ... menu */}
-                      <div className="md:hidden relative inline-block text-left">
-                        <button
-                          onClick={() => setShowMenu(prev => prev === membro.id ? null : membro.id)}
-                          className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-2 py-1 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
-                        >
-                          ...
-                        </button>
-
-                        {showMenu === membro.id && (
-                          <div className="origin-top-right absolute right-0 mt-2 w-28 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
-                            <div className="py-1">
-                              <button
-                                onClick={() => { handleEdit(membro); setShowMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100"
-                              >
-                                Editar
-                              </button>
-                              <button
-                                onClick={() => { handleDelete(membro.id); setShowMenu(null); }}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     </td>
                   </tr>
