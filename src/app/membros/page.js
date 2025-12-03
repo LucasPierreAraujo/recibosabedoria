@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Edit, ArrowLeft, Save, X } from 'lucide-react';
 
@@ -18,16 +18,8 @@ export default function MembrosPage() {
   const graus = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'CANDIDATO' ];
   const statusOptions = ['ATIVO', 'INATIVO'];
 
-  useEffect(() => {
-    const isAuth = localStorage.getItem('isAuthenticated');
-    if (!isAuth) {
-      router.push('/login');
-      return;
-    }
-    carregarMembros();
-  }, [router]);
-
   const carregarMembros = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/membros');
       const data = await response.json();
@@ -41,7 +33,6 @@ export default function MembrosPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     try {
       if (editingId) {
         // Atualizar

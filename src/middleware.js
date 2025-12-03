@@ -1,30 +1,20 @@
-import { NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+export default function middleware(req) {
+  const { pathname } = req.nextUrl;
+  console.log("Middleware ativo em:", pathname);
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'sua-chave-secreta-super-segura-aqui-change-me'
-);
+  const token = req.cookies.get('auth-token')?.value;
+  console.log("token", token);
+  const isLogged = !!token;
 
-export async function middleware(request) {
-  const { pathname } = request.nextUrl;
-
-  // Rotas públicas
-  const publicPaths = ['/', '/login'];
-  if (publicPaths.some(path => pathname.startsWith(path))) return NextResponse.next();
-
-  // Pega token do cookie
-  const token = request.cookies.get('auth-token')?.value;
-
-  if (!token) return NextResponse.redirect(new URL('/login', request.url));
-
-  try {
-    await jwtVerify(token, SECRET_KEY);
-    return NextResponse.next();
-  } catch {
-    return NextResponse.redirect(new URL('/login', request.url));
+  if (pathname.startsWith('/dashboard') && !isLogged) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    return Response.redirect(url);
   }
+  console.log('carregou no fim do middleware');
+  return;
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/membros/:path*', '/recibo/:path*']
+  matcher: ['/dashboard/:path*'],  
 };
