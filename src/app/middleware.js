@@ -6,32 +6,25 @@ const SECRET_KEY = new TextEncoder().encode(
 );
 
 export async function middleware(request) {
-  const token = request.cookies.get('auth-token')?.value;
   const { pathname } = request.nextUrl;
 
   // Rotas públicas
-  const publicPaths = ['/login', '/'];
-  if (publicPaths.some(path => pathname.startsWith(path))) {
-    return NextResponse.next();
-  }
+  const publicPaths = ['/', '/login'];
+  if (publicPaths.some(path => pathname.startsWith(path))) return NextResponse.next();
 
-  // Verifica autenticação
-  if (!token) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
+  // Pega token do cookie
+  const token = request.cookies.get('auth-token')?.value;
+
+  if (!token) return NextResponse.redirect(new URL('/login', request.url));
 
   try {
     await jwtVerify(token, SECRET_KEY);
     return NextResponse.next();
-  } catch (error) {
+  } catch {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/membros/:path*',
-    '/recibo/:path*'
-  ]
+  matcher: ['/dashboard/:path*', '/membros/:path*', '/recibo/:path*']
 };

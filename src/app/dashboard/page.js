@@ -1,16 +1,25 @@
 "use client"
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Users, LogOut } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isAuth = localStorage.getItem('isAuthenticated');
-    if (!isAuth) {
-      router.push('/login');
+    async function checkAuth() {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const data = await res.json();
+
+      if (!data.authenticated) {
+        router.push('/login');
+      } else {
+        setLoading(false);
+      }
     }
+
+    checkAuth();
   }, [router]);
 
   const handleLogout = async () => {
@@ -19,8 +28,9 @@ export default function DashboardPage() {
       credentials: 'include'
     });
     router.push('/login');
-    router.refresh();
   };
+
+  if (loading) return <div className="p-8">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -45,36 +55,25 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card Gerar Recibo */}
-          <div
-            onClick={() => router.push('/recibo')}
-            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-blue-600"
-          >
+          {/* Cards */}
+          <div onClick={() => router.push('/recibo')} className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-blue-600">
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-100 p-4 rounded-full">
                 <FileText size={32} className="text-blue-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800">Gerar Recibo</h3>
             </div>
-            <p className="text-gray-600">
-              Crie e exporte recibos em PDF para os membros da loja
-            </p>
+            <p className="text-gray-600">Crie e exporte recibos em PDF para os membros da loja</p>
           </div>
 
-          {/* Card Gerenciar Membros */}
-          <div
-            onClick={() => router.push('/membros')}
-            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-green-600"
-          >
+          <div onClick={() => router.push('/membros')} className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-green-600">
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-green-100 p-4 rounded-full">
                 <Users size={32} className="text-green-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800">Gerenciar Membros</h3>
             </div>
-            <p className="text-gray-600">
-              Adicione, edite ou remova membros do cadastro da loja
-            </p>
+            <p className="text-gray-600">Adicione, edite ou remova membros do cadastro da loja</p>
           </div>
         </div>
       </main>
