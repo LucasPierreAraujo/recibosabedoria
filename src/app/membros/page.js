@@ -9,18 +9,15 @@ export default function MembrosPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showMenu, setShowMenu] = useState(null);
   const [formData, setFormData] = useState({
     nome: '',
     grau: '',
     status: 'ATIVO'
   });
 
-  
-
-  const graus = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'CANDIDATO' ];
+  const graus = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'CANDIDATO'];
   const statusOptions = ['ATIVO', 'INATIVO'];
-
-    
 
   const carregarMembros = async () => {
     setLoading(true);
@@ -36,28 +33,25 @@ export default function MembrosPage() {
   };
 
   useEffect(() => {
-  carregarMembros();
+    carregarMembros();
   }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editingId) {
-        // Atualizar
         await fetch('/api/membros', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ ...formData, id: editingId })
         });
       } else {
-        // Adicionar
         await fetch('/api/membros', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
       }
-      
       setFormData({ nome: '', grau: '', status: 'ATIVO' });
       setShowForm(false);
       setEditingId(null);
@@ -208,9 +202,8 @@ export default function MembrosPage() {
             Nenhum membro cadastrado
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="overflow-x-auto">
-            <table className="w-full min-w-max"></table>
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden overflow-x-auto">
+            <table className="w-full min-w-max">
               <thead className="bg-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-gray-700 font-bold">Nome</th>
@@ -234,18 +227,50 @@ export default function MembrosPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => handleEdit(membro)}
-                        className="text-blue-600 hover:text-blue-800 mr-4"
-                      >
-                        <Edit size={20} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(membro.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 size={20} />
-                      </button>
+                      {/* Desktop buttons */}
+                      <div className="hidden md:flex gap-2 justify-center">
+                        <button
+                          onClick={() => handleEdit(membro)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          <Edit size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(membro.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+
+                      {/* Mobile ... menu */}
+                      <div className="md:hidden relative inline-block text-left">
+                        <button
+                          onClick={() => setShowMenu(prev => prev === membro.id ? null : membro.id)}
+                          className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-2 py-1 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none"
+                        >
+                          ...
+                        </button>
+
+                        {showMenu === membro.id && (
+                          <div className="origin-top-right absolute right-0 mt-2 w-28 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1">
+                              <button
+                                onClick={() => { handleEdit(membro); setShowMenu(null); }}
+                                className="w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100"
+                              >
+                                Editar
+                              </button>
+                              <button
+                                onClick={() => { handleDelete(membro.id); setShowMenu(null); }}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
