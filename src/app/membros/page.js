@@ -15,9 +15,7 @@ export default function MembrosPage() {
     status: 'ATIVO'
   });
 
-  useEffect(() => {
-  carregarMembros();
-  }, []);
+  
 
   const graus = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'CANDIDATO' ];
   const statusOptions = ['ATIVO', 'INATIVO'];
@@ -36,6 +34,10 @@ export default function MembrosPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+  carregarMembros();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
