@@ -9,37 +9,36 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function checkAuth() {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
 
-      if (!data.authenticated) {
+        if (!data.authenticated) {
+          router.push('/login');
+        } else {
+          setLoading(false);
+        }
+      } catch (err) {
         router.push('/login');
-      } else {
-        setLoading(false);
       }
     }
 
     checkAuth();
-  }, [router]);
+  }, []);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { 
-      method: 'POST',
-      credentials: 'include'
-    });
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     router.push('/login');
   };
 
-  if (loading) return <div className="p-8">Carregando...</div>;
+  if (loading) return <div className="flex items-center justify-center min-h-screen">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
       <header className="bg-blue-900 text-white p-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-2xl font-bold">
-            A.R.L.S. Sabedoria de Salomão Nº 4774
-          </h1>
+          <h1 className="text-2xl font-bold">A.R.L.S. Sabedoria de Salomão Nº 4774</h1>
           <button
             onClick={handleLogout}
             className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg transition"
@@ -55,8 +54,11 @@ export default function DashboardPage() {
         <h2 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Cards */}
-          <div onClick={() => router.push('/recibo')} className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-blue-600">
+          {/* Card Gerar Recibo */}
+          <div
+            onClick={() => router.push('/recibo')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-blue-600"
+          >
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-blue-100 p-4 rounded-full">
                 <FileText size={32} className="text-blue-600" />
@@ -66,7 +68,11 @@ export default function DashboardPage() {
             <p className="text-gray-600">Crie e exporte recibos em PDF para os membros da loja</p>
           </div>
 
-          <div onClick={() => router.push('/membros')} className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-green-600">
+          {/* Card Gerenciar Membros */}
+          <div
+            onClick={() => router.push('/membros')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-green-600"
+          >
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-green-100 p-4 rounded-full">
                 <Users size={32} className="text-green-600" />
