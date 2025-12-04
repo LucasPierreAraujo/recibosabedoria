@@ -24,7 +24,14 @@ export async function POST(request) {
       data: {
         nome: body.nome,
         grau: body.grau,
-        status: body.status || 'ATIVO'
+        status: body.status || 'ATIVO',
+        cim: body.cim || null,
+        cargo: body.cargo || null,
+        assinaturaUrl: body.assinaturaUrl || null,
+        dataIniciacao: body.dataIniciacao || null,
+        dataFiliacao: body.dataFiliacao || null,
+        dataPassagemGrau: body.dataPassagemGrau || null,
+        dataElevacao: body.dataElevacao || null
       }
     });
     
@@ -45,7 +52,14 @@ export async function PUT(request) {
       data: {
         nome: body.nome,
         grau: body.grau,
-        status: body.status
+        status: body.status,
+        cim: body.cim || null,
+        cargo: body.cargo || null,
+        assinaturaUrl: body.assinaturaUrl || null,
+        dataIniciacao: body.dataIniciacao || null,
+        dataFiliacao: body.dataFiliacao || null,
+        dataPassagemGrau: body.dataPassagemGrau || null,
+        dataElevacao: body.dataElevacao || null
       }
     });
     

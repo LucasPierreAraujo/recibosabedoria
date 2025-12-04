@@ -76,6 +76,9 @@ const ReciboMaconico = () => {
   const [membros, setMembros] = useState([]);
   const [membrosFiltrados, setMembrosFiltrados] = useState([]);
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  
+  // Estado para tesoureiro
+  const [tesoureiro, setTesoureiro] = useState(null);
 
   const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
   const mesesCompletos = [
@@ -84,19 +87,26 @@ const ReciboMaconico = () => {
   ];
   const taxas = ['INICIAÇÃO', 'ELEIÇÃO', 'PASSAGEM DE GRAU', 'ELEVAÇÃO', 'INSTALAÇÃO', 'REGULARIZAÇÃO', 'REASSUNÇÃO', 'QUITE PLACET'];
 
-  // Verifica autenticação e carrega membros
+  // Carrega membros e busca o tesoureiro
   useEffect(() => {
-  carregarMembros();
+    carregarMembros();
   }, []);
-
 
   const carregarMembros = async () => {
     try {
       const response = await fetch('/api/membros');
       const data = await response.json();
+      
       // Filtra apenas membros ativos
       const membrosAtivos = data.filter(m => m.status === 'ATIVO');
       setMembros(membrosAtivos);
+      
+      // Busca o tesoureiro (membro com cargo TESOUREIRO)
+      const tesoureiroEncontrado = data.find(
+        m => m.cargo === 'TESOUREIRO' && m.status === 'ATIVO'
+      );
+      setTesoureiro(tesoureiroEncontrado);
+      
     } catch (error) {
       console.error('Erro ao carregar membros:', error);
     }
@@ -410,14 +420,14 @@ const ReciboMaconico = () => {
         <div id="recibo-content" className="bg-white p-4 md:p-8 overflow-x-auto max-w-4xl mx-auto" style={{ maxWidth: '100%' }}>
           <div className="border-4 border-black rounded-lg p-2 md:p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex-1 w-full">
-              <div className="text-xs  mb-2 text-black">Loja nº:</div>
-              <div className="text-center font-bold text-xl  text-black">
+              {/* <div className="text-xs mb-2 text-black">Loja nº:</div> */}
+              <div className="text-center font-bold text-xl text-black">
                 A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774
               </div>
             </div>
             <div className="w-10 h-16 md:w-22 md:h-22 flex items-center justify-center">
-                <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
-            </div>      
+              <img src="/logo.jpeg" alt="ARLS Sabedoria de Salomão" className="w-full h-full object-contain" />
+            </div>
           </div>
 
           <div className="mb-3">
@@ -481,6 +491,7 @@ const ReciboMaconico = () => {
             </div>
           </div>
 
+          {/* Footer com Tesoureiro */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end text-sm pt-6 text-black gap-4 md:gap-0">
             <div className="flex gap-2 items-center flex-wrap">
               <span>{dataLocal},</span>
@@ -490,8 +501,32 @@ const ReciboMaconico = () => {
               <span>de</span>
               <span className="px-8">{ano}</span>
             </div>
-            <div className="w-full md:w-64 text-center">
-              <span>Tesoureiro</span>
+            
+            {/* Área do Tesoureiro */}
+            <div className="w-full md:w-64 flex flex-col items-center">
+              {tesoureiro && tesoureiro.assinaturaUrl ? (
+                <div className="mb-2">
+                  <img 
+                    src={tesoureiro.assinaturaUrl} 
+                    alt="Assinatura" 
+                    className="max-h-16 object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="h-16 mb-2 border-b-2 border-black w-48"></div>
+              )}
+              
+              {tesoureiro ? (
+                <>
+                  <div className="font-bold text-center text-sm">{tesoureiro.nome}</div>
+                  <div className="text-xs text-center">CIM: {tesoureiro.cim || 'N/A'}</div>
+                  <div className="text-xs text-center mt-1">Tesoureiro</div>
+                </>
+              ) : (
+                <div className="text-center">
+                  <div className="text-xs">Tesoureiro</div>
+                </div>
+              )}
             </div>
           </div>
         </div>

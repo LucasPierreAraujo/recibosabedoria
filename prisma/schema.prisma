@@ -12,7 +12,7 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
-  password  String   // Hash da senha
+  password  String
   createdAt DateTime @default(now())
   
   @@map("users")
@@ -23,6 +23,18 @@ model Membro {
   nome         String
   grau         String
   status       String
+  
+  // Campos comuns (não obrigatórios no schema, validados no código)
+  cim          String?
+  cargo        String?
+  assinaturaUrl String?  // URL da imagem da assinatura
+  
+  // Datas - todas opcionais no schema, validadas no código conforme grau
+  dataIniciacao      String?
+  dataFiliacao       String?
+  dataPassagemGrau   String?
+  dataElevacao       String?
+  
   dataCadastro DateTime @default(now())
   
   @@map("membros")
