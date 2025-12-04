@@ -518,9 +518,10 @@ const ReciboMaconico = () => {
               
               {tesoureiro ? (
                 <>
+                  <div className="text-sm text-center mt-1">Tesoureiro</div>
                   <div className="font-bold text-center text-sm">{tesoureiro.nome}</div>
-                  <div className="text-xs text-center">CIM: {tesoureiro.cim || 'N/A'}</div>
-                  <div className="text-xs text-center mt-1">Tesoureiro</div>
+                  <div className="font-bold text-xs text-center">CIM: {tesoureiro.cim || 'N/A'}</div>
+                  
                 </>
               ) : (
                 <div className="text-center">
