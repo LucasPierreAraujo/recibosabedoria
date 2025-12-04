@@ -104,10 +104,6 @@ export default function LoginPage() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-
-        <div className="mt-6 text-center text-sm text-gray-600">
-          <p>🔒 Sistema com criptografia de ponta</p>
-        </div>
       </div>
     </div>
   );
