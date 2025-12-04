@@ -83,20 +83,61 @@ export default function MembrosPage() {
 
   // ================== UPLOAD DE ASSINATURA ==================
   const handleAssinaturaUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) { // 2MB
-      alert('Imagem muito grande! Máximo 2MB');
-      return;
-    }
+  // Validar tamanho (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Imagem muito grande! Máximo 5MB');
+    return;
+  }
 
+  // Validar tipo
+  if (!file.type.startsWith('image/')) {
+    alert('Apenas imagens são permitidas!');
+    return;
+  }
+
+  // Mostrar loading
+  const loading = document.createElement('div');
+  loading.className = 'text-center text-sm text-gray-600 mt-2';
+  loading.textContent = 'Fazendo upload...';
+  e.target.parentElement.appendChild(loading);
+
+  try {
+    // Converter para base64
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, assinaturaUrl: reader.result });
+    reader.onloadend = async () => {
+      try {
+        // Enviar para API de upload
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: reader.result })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          setFormData({ ...formData, assinaturaUrl: data.url });
+          alert('Upload realizado com sucesso!');
+        } else {
+          alert('Erro no upload. Tente novamente.');
+        }
+      } catch (error) {
+        console.error('Erro:', error);
+        alert('Erro ao fazer upload');
+      } finally {
+        loading.remove();
+      }
     };
     reader.readAsDataURL(file);
-  };
+  } catch (error) {
+    console.error('Erro ao ler arquivo:', error);
+    alert('Erro ao processar imagem');
+    loading.remove();
+  }
+};
 
   // ================== SUBMIT ==================
   const handleSubmit = async (e) => {
