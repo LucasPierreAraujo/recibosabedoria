@@ -24,12 +24,10 @@ model Membro {
   grau         String
   status       String
   
-  // Campos comuns (não obrigatórios no schema, validados no código)
   cim          String?
   cargo        String?
-  assinaturaUrl String?  // URL da imagem da assinatura
+  assinaturaUrl String?
   
-  // Datas - todas opcionais no schema, validadas no código conforme grau
   dataIniciacao      String?
   dataFiliacao       String?
   dataPassagemGrau   String?
@@ -37,5 +35,86 @@ model Membro {
   
   dataCadastro DateTime @default(now())
   
+  // Relação com pagamentos
+  pagamentos   PagamentoMensalidade[]
+  
   @@map("membros")
+}
+
+// Nova tabela para Planilhas Mensais
+model PlanilhaFinanceira {
+  id          String   @id @default(cuid())
+  mes         Int      // 1-12
+  ano         Int      // 2025, 2026...
+  
+  // Valor da mensalidade neste mês
+  valorMensalidade Decimal @default(0)
+  
+  // Totais calculados
+  totalReceitas    Decimal @default(0)
+  totalDespesas    Decimal @default(0)
+  saldoFinal       Decimal @default(0)
+  
+  criada       DateTime @default(now())
+  
+  // Relações
+  receitas     Receita[]
+  despesas     Despesa[]
+  pagamentos   PagamentoMensalidade[]
+  
+  @@unique([mes, ano])
+  @@map("planilhas_financeiras")
+}
+
+// Pagamentos de Mensalidade
+model PagamentoMensalidade {
+  id          String   @id @default(cuid())
+  
+  membroId    String
+  membro      Membro   @relation(fields: [membroId], references: [id], onDelete: Cascade)
+  
+  planilhaId  String
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+  
+  // Quantos meses pagou (1, 2, 3... para mensalidades atrasadas)
+  quantidadeMeses Int @default(1)
+  
+  // Valor total pago
+  valorPago   Decimal
+  
+  // Meses referentes ao pagamento (ex: "OUT/2024, NOV/2024")
+  mesesReferentes String
+  
+  dataPagamento DateTime @default(now())
+  
+  @@map("pagamentos_mensalidade")
+}
+
+// Receitas
+model Receita {
+  id          String   @id @default(cuid())
+  
+  planilhaId  String
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+  
+  descricao   String
+  valor       Decimal
+  data        DateTime @default(now())
+  
+  @@map("receitas")
+}
+
+// Despesas
+model Despesa {
+  id          String   @id @default(cuid())
+  
+  planilhaId  String
+  planilha    PlanilhaFinanceira @relation(fields: [planilhaId], references: [id], onDelete: Cascade)
+  
+  categoria   String   // Ex: "DESPESAS DE CUSTEIO", "DESPESAS DE ORDEM SOCIAL"
+  descricao   String
+  valor       Decimal
+  data        DateTime @default(now())
+  
+  @@map("despesas")
 }

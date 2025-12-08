@@ -69,6 +69,21 @@ export default function DashboardPage() {
               Adicione, edite ou remova membros do cadastro da loja
             </p>
           </div>
+          {/* Card Financeiro */}
+          <div
+            onClick={() => router.push('/financeiro')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-yellow-600"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-yellow-100 p-4 rounded-full">
+                <FileText size={32} className="text-yellow-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Gestão Financeira</h3>
+            </div>
+            <p className="text-gray-600">
+              Controle de mensalidades, receitas e despesas da loja
+            </p>
+          </div>
         </div>
       </main>
     </div>
