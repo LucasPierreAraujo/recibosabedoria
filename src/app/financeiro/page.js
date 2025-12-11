@@ -123,7 +123,7 @@ export default function FinanceiroPage() {
           <div className="bg-white rounded-lg shadow-lg p-8 text-center text-gray-600">
             <FolderOpen size={64} className="mx-auto mb-4 text-gray-400" />
             <p className="text-xl mb-2">Nenhuma planilha criada</p>
-            <p className="text-sm">Clique em "Nova Planilha" para começar</p>
+            <p className="text-sm">Clique em Nova Planilha para começar</p>
           </div>
         ) : (
           <div className="space-y-6">
