@@ -149,25 +149,11 @@ export default function DetalhePlanilhaPage() {
     const isExcecao = idsExcecao.includes(membroSelecionado.id);
     
     let valorMensalidadeUnitario = Number(planilha.valorMensalidade);
-    
+
     if (isExcecao && planilha.valorMensalidadeExcecao !== null && Number(planilha.valorMensalidadeExcecao) >= 0) {
         valorMensalidadeUnitario = Number(planilha.valorMensalidadeExcecao);
     }
 
-    // VALIDAÇÃO: Verificar se já pagou o mês atual (se não for inadimplência)
-    if (!pagamentoSelecionado || pagamentoSelecionado.quantidadeMeses >= 0) {
-      const jaPagouMesAtual = planilha.pagamentos.some(p => 
-        p.membroId === membroSelecionado.id && 
-        p.quantidadeMeses > 0 && 
-        p.mesesReferentes.includes(`${meses[planilha.mes - 1].substring(0,3)}/${String(planilha.ano).slice(-2)}`)
-      );
-      
-      if (jaPagouMesAtual) {
-        alert('Este membro já pagou o mês atual desta planilha!');
-        return;
-      }
-    }
-    
     // Usar valor customizado se habilitado
     let valorTotal;
     if (usarValorCustomizado && valorCustomizado) {
@@ -179,10 +165,10 @@ export default function DetalhePlanilhaPage() {
     } else {
       valorTotal = valorMensalidadeUnitario * mesesPagar;
     }
-    
+
     // Se for inadimplência, usa os meses do registro de dívida
     let mesesRef = [];
-    
+
     if (pagamentoSelecionado && pagamentoSelecionado.quantidadeMeses < 0) {
       mesesRef = [pagamentoSelecionado.mesesReferentes];
     } else {
@@ -190,9 +176,31 @@ export default function DetalhePlanilhaPage() {
         const mesAtual = mesReferenciaPagamento - i;
         const anoAtual = mesAtual > 0 ? anoReferenciaPagamento : anoReferenciaPagamento - 1;
         const mesAjustado = mesAtual > 0 ? mesAtual : 12 + mesAtual;
-        mesesRef.push(`${meses[mesAjustado - 1].substring(0,3)}/${anoAtual}`); 
+        mesesRef.push(`${meses[mesAjustado - 1].substring(0,3)}/${String(anoAtual).slice(-2)}`);
       }
       mesesRef = mesesRef.reverse();
+    }
+
+    // VALIDAÇÃO: Verificar se algum dos meses que está tentando pagar já foi pago (se não for inadimplência)
+    if (!pagamentoSelecionado || pagamentoSelecionado.quantidadeMeses >= 0) {
+      const mesesParaPagar = mesesRef.join(', ');
+      const mesesJaPagos = [];
+
+      for (const pagamento of planilha.pagamentos) {
+        if (pagamento.membroId === membroSelecionado.id && pagamento.quantidadeMeses > 0) {
+          const mesesDoPagamento = pagamento.mesesReferentes.split(',').map(m => m.trim());
+          for (const mes of mesesDoPagamento) {
+            if (mesesParaPagar.includes(mes)) {
+              mesesJaPagos.push(mes);
+            }
+          }
+        }
+      }
+
+      if (mesesJaPagos.length > 0) {
+        alert(`Este membro já pagou o(s) seguinte(s) mês(es): ${mesesJaPagos.join(', ')}`);
+        return;
+      }
     }
 
     try {
@@ -507,16 +515,16 @@ export default function DetalhePlanilhaPage() {
   const mesAtualPlanilha = planilha.mes;
   const anoAtualPlanilha = planilha.ano;
   const mesAtualFormatado = `${meses[mesAtualPlanilha - 1].substring(0,3)}/${String(anoAtualPlanilha).slice(-2)}`;
-  
+
   membros.forEach(membro => {
     const pagamentosDoMembro = planilha.pagamentos?.filter(p => p.membroId === membro.id) || [];
     const inadimplencias = pagamentosDoMembro.filter(p => p.quantidadeMeses < 0);
     const pagamentosReais = pagamentosDoMembro.filter(p => p.quantidadeMeses > 0);
-    
+
     // 1. Adicionar inadimplências (cada mês como linha separada)
     inadimplencias.forEach(inad => {
       const mesesDevidos = inad.mesesReferentes.split(',').map(m => m.trim());
-      
+
       mesesDevidos.forEach(mesDevido => {
         linhasTabela.push({
           membro,
@@ -530,13 +538,13 @@ export default function DetalhePlanilhaPage() {
         });
       });
     });
-    
+
     // 2. Adicionar linha do mês atual
     const pagouEspecificamenteMesAtual = pagamentosReais.some(p => {
-      return p.mesesReferentes === mesAtualFormatado || 
+      return p.mesesReferentes === mesAtualFormatado ||
              p.mesesReferentes.includes(mesAtualFormatado);
     });
-    
+
     if (pagouEspecificamenteMesAtual) {
       const pag = pagamentosReais.find(p => p.mesesReferentes.includes(mesAtualFormatado));
       linhasTabela.push({
@@ -644,84 +652,28 @@ export default function DetalhePlanilhaPage() {
         </div>
 
         {/* Conteúdo para PDF */}
-        <div id="planilha-completa" className="bg-white p-8 rounded-lg shadow-lg">
-          <div className="text-center mb-6">
-            <img 
-              src="/logo.jpeg" 
-              alt="Logo A.R.L.S. Sabedoria de Salomão" 
-              className="h-20 w-auto mx-auto mb-4" 
+        <div id="planilha-completa" className="bg-white p-6 rounded-lg shadow-lg">
+          <div className="text-center mb-4">
+            <img
+              src="/logo.jpeg"
+              alt="Logo A.R.L.S. Sabedoria de Salomão"
+              className="h-16 w-auto mx-auto mb-3"
             />
-            <h1 className="text-3xl font-bold text-gray-800">A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774</h1>
-            <h2 className="text-xl text-gray-600 mt-2">Planilha Financeira - {meses[planilha.mes - 1]} / {planilha.ano}</h2>
-          </div>
-
-          {/* Resumo Movimento de Caixa */}
-          <div className="mb-8 p-4 border-b-4 border-blue-500 bg-blue-50 rounded-lg">
-            <h3 className="text-2xl font-bold text-blue-800 mb-4 flex items-center gap-2"><Briefcase size={24} /> Resumo Movimento de Caixa (Caixa Geral)</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm font-semibold">
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Saldo Inicial</div>
-                    <div className="text-gray-800">R$ {Number(planilha.saldoInicialCaixa).toFixed(2)}</div>
-                </div>
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Total Mensalidades</div>
-                    <div className="text-green-600">R$ {planilha.pagamentos.filter(p => p.quantidadeMeses > 0).reduce((sum, p) => sum + Number(p.valorPago), 0).toFixed(2)}</div>
-                </div>
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Outros Recebimentos</div> 
-                    <div className="text-green-600">R$ {planilha.receitas.reduce((sum, r) => sum + Number(r.valor), 0).toFixed(2)}</div>
-                </div>
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Total Despesas</div>
-                    <div className="text-red-600">R$ {Number(planilha.totalDespesas).toFixed(2)}</div>
-                </div>
-                <div className="p-2 font-bold text-lg">
-                    <div className="text-gray-700">Saldo Final Caixa</div>
-                    <div className={getCorSaldo(planilha.saldoFinalCaixa)}>R$ {Number(planilha.saldoFinalCaixa).toFixed(2)}</div>
-                </div>
-            </div>
-          </div>
-          
-          {/* Resumo Tronco de Beneficência */}
-          <div className="mb-8 p-4 border-b-4 border-yellow-500 bg-yellow-50 rounded-lg">
-            <h3 className="text-2xl font-bold text-yellow-800 mb-4 flex items-center gap-2"><DollarSign size={24} /> Resumo Tronco de Beneficência</h3>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm font-semibold">
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Saldo Inicial</div>
-                    <div className="text-gray-800">R$ {Number(planilha.saldoInicialTronco).toFixed(2)}</div>
-                </div>
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Total Recebido Mês</div> 
-                    <div className="text-green-600">R$ {Number(planilha.totalTroncoRecebido).toFixed(2)}</div>
-                </div>
-                <div className="p-2 border-r">
-                    <div className="text-gray-600">Total Doações Filantrópicas</div> 
-                    <div className="text-red-600">R$ {Number(planilha.totalDoacoesFilantropicas).toFixed(2)}</div>
-                </div>
-                <div className="p-2 font-bold text-lg col-span-2 md:col-span-2">
-                    <div className="text-gray-700">Saldo Final Tronco</div>
-                    <div className={getCorSaldo(planilha.saldoFinalTronco)}>R$ {Number(planilha.saldoFinalTronco).toFixed(2)}</div>
-                </div>
-            </div>
-          </div>
-          
-          {/* Saldo Final Total */}
-          <div className="mb-6 text-right p-3 bg-gray-200 rounded-lg">
-              <span className="text-xl font-bold text-gray-800">SALDO FINAL TOTAL (Caixa + Tronco): </span>
-              <span className={`text-2xl font-extrabold ${getCorSaldo(saldoFinalTotal)}`}>R$ {saldoFinalTotal.toFixed(2)}</span>
+            <h1 className="text-2xl font-bold text-gray-800">A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774</h1>
+            <h2 className="text-lg text-gray-600 mt-1">Planilha Financeira - {meses[planilha.mes - 1]} / {planilha.ano}</h2>
           </div>
 
           {/* Tabela de Mensalidades (para PDF) */}
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Mensalidades Recebidas</h3>
-            <table className="w-full border-2 border-gray-300">
+          <div className="mb-3 break-inside-avoid">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Mensalidades Recebidas</h3>
+            <table className="w-full border-2 border-gray-300 text-sm">
               <thead className="bg-gray-200 text-gray-900 font-semibold">
                 <tr>
-                  <th className="border px-4 py-2 text-left">Nome</th>
-                  <th className="border px-4 py-2 text-left">CIM</th>
-                  <th className="border px-4 py-2 text-center">Status</th>
-                  <th className="border px-4 py-2 text-left">Mês Ref.</th> 
-                  <th className="border px-4 py-2 text-right">Valor</th>
+                  <th className="border px-2 py-1 text-left">Nome</th>
+                  <th className="border px-2 py-1 text-left">CIM</th>
+                  <th className="border px-2 py-1 text-center">Status</th>
+                  <th className="border px-2 py-1 text-left">Mês Ref.</th>
+                  <th className="border px-2 py-1 text-right">Valor</th>
                 </tr>
               </thead>
               <tbody>
@@ -729,19 +681,19 @@ export default function DetalhePlanilhaPage() {
                   const pagou = pagamentosPorMembro[membro.id];
                   return (
                     <tr key={membro.id}>
-                      <td className="border text-gray-900 px-4 py-2">{membro.nome}</td>
-                      <td className="border text-gray-900 px-4 py-2">{membro.cim || '-'}</td>
-                      <td className="border px-4 py-2 text-center">
+                      <td className="border text-gray-900 px-2 py-1">{membro.nome}</td>
+                      <td className="border text-gray-900 px-2 py-1">{membro.cim || '-'}</td>
+                      <td className="border px-2 py-1 text-center">
                         {pagou ? (
                           <span className="text-green-600 font-bold">✓ Pago</span>
                         ) : (
                           <span className="text-red-600 font-bold">✗ Pendente</span>
                         )}
                       </td>
-                      <td className="border text-gray-900 px-4 py-2 text-left text-xs">
+                      <td className="border text-gray-900 px-2 py-1 text-left text-xs">
                         {pagou ? pagou.mesesReferentes.join(', ') : '-'}
                       </td>
-                      <td className="border text-gray-900 px-4 py-2 text-right">
+                      <td className="border text-gray-900 px-2 py-1 text-right">
                         {pagou ? `R$ ${pagou.valorTotal.toFixed(2)}` : '-'}
                       </td>
                     </tr>
@@ -753,26 +705,26 @@ export default function DetalhePlanilhaPage() {
 
           {/* Tabela de Outros Recebimentos */}
           {planilha.receitas && planilha.receitas.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Outros Recebimentos</h3> 
-              <table className="w-full border-2 border-gray-300">
+            <div className="mb-3 break-inside-avoid">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Outros Recebimentos</h3>
+              <table className="w-full border-2 border-gray-300 text-sm">
                 <thead className="bg-green-100 text-gray-900">
                   <tr>
-                    <th className="border px-4 py-2 text-left">Descrição</th>
-                    <th className="border px-4 py-2 text-left">Data</th>
-                    <th className="border px-4 py-2 text-right">Valor</th>
-                    <th className="border px-4 py-2 text-center print:hidden">Ação</th>
+                    <th className="border px-2 py-1 text-left">Descrição</th>
+                    <th className="border px-2 py-1 text-left">Data</th>
+                    <th className="border px-2 py-1 text-right">Valor</th>
+                    <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {planilha.receitas.map(receita => (
                     <tr key={receita.id}>
-                      <td className="border text-gray-900 px-4 py-2">{receita.descricao}</td>
-                      <td className="border text-gray-900 px-4 py-2 text-sm">{new Date(receita.data).toLocaleDateString()}</td>
-                      <td className="border px-4 py-2 text-right text-green-600 font-bold">
+                      <td className="border text-gray-900 px-2 py-1">{receita.descricao}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(receita.data).toLocaleDateString()}</td>
+                      <td className="border px-2 py-1 text-right text-green-600 font-bold">
                         R$ {Number(receita.valor).toFixed(2)}
                       </td>
-                      <td className="border px-4 py-2 text-center print:hidden">
+                      <td className="border px-2 py-1 text-center print:hidden">
                         <button onClick={() => excluirLancamento('receita', receita.id)} className="text-red-600 hover:text-red-800">
                           <Trash2 size={18} />
                         </button>
@@ -786,28 +738,28 @@ export default function DetalhePlanilhaPage() {
 
           {/* Tabela de Despesas */}
           {planilha.despesas && planilha.despesas.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Despesas</h3>
-              <table className="w-full border-2 border-gray-300">
+            <div className="mb-3 break-inside-avoid">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Despesas</h3>
+              <table className="w-full border-2 border-gray-300 text-sm">
                 <thead className="bg-red-100 text-gray-900">
                   <tr>
-                    <th className="border px-4 py-2 text-left">Categoria</th>
-                    <th className="border px-4 py-2 text-left">Descrição</th>
-                    <th className="border px-4 py-2 text-center">Tipo</th> 
-                    <th className="border px-4 py-2 text-right">Valor</th>
-                    <th className="border px-4 py-2 text-center print:hidden">Ação</th>
+                    <th className="border px-2 py-1 text-left">Categoria</th>
+                    <th className="border px-2 py-1 text-left">Descrição</th>
+                    <th className="border px-2 py-1 text-center">Tipo</th>
+                    <th className="border px-2 py-1 text-right">Valor</th>
+                    <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {planilha.despesas.map(despesa => (
                     <tr key={despesa.id}>
-                      <td className="border text-gray-900 px-4 py-2 text-sm">{despesa.categoria}</td>
-                      <td className="border text-gray-900 px-4 py-2">{despesa.descricao}</td>
-                      <td className="border text-gray-900 px-4 py-2 text-center text-xs font-semibold">{despesa.tipoGasto}</td>
-                      <td className="border px-4 py-2 text-right text-red-600 font-bold">
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{despesa.categoria}</td>
+                      <td className="border text-gray-900 px-2 py-1">{despesa.descricao}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-center text-xs font-semibold">{despesa.tipoGasto}</td>
+                      <td className="border px-2 py-1 text-right text-red-600 font-bold">
                         R$ {Number(despesa.valor).toFixed(2)}
                       </td>
-                      <td className="border px-4 py-2 text-center print:hidden">
+                      <td className="border px-2 py-1 text-center print:hidden">
                         <button onClick={() => excluirLancamento('despesa', despesa.id)} className="text-red-600 hover:text-red-800">
                           <Trash2 size={18} />
                         </button>
@@ -818,29 +770,29 @@ export default function DetalhePlanilhaPage() {
               </table>
             </div>
           )}
-          
+
           {/* Tabela de Tronco de Beneficência */}
           {planilha.troncos && planilha.troncos.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Recebimentos Tronco de Beneficência</h3>
-              <table className="w-full border-2 border-gray-300">
+            <div className="mb-3 break-inside-avoid">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Recebimentos Tronco de Beneficência</h3>
+              <table className="w-full border-2 border-gray-300 text-sm">
                 <thead className="bg-yellow-100 text-gray-900">
                   <tr>
-                    <th className="border px-4 py-2 text-left">Grau da Sessão</th>
-                    <th className="border px-4 py-2 text-left">Data</th>
-                    <th className="border px-4 py-2 text-right">Valor</th>
-                    <th className="border px-4 py-2 text-center print:hidden">Ação</th>
+                    <th className="border px-2 py-1 text-left">Grau da Sessão</th>
+                    <th className="border px-2 py-1 text-left">Data</th>
+                    <th className="border px-2 py-1 text-right">Valor</th>
+                    <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {planilha.troncos.map(tronco => (
                     <tr key={tronco.id}>
-                      <td className="border text-gray-900 px-4 py-2">{tronco.grauSessao}</td>
-                      <td className="border text-gray-900 px-4 py-2 text-sm">{new Date(tronco.data).toLocaleDateString()}</td>
-                      <td className="border px-4 py-2 text-right text-green-600 font-bold">
+                      <td className="border text-gray-900 px-2 py-1">{tronco.grauSessao}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(tronco.data).toLocaleDateString()}</td>
+                      <td className="border px-2 py-1 text-right text-green-600 font-bold">
                         R$ {Number(tronco.valor).toFixed(2)}
                       </td>
-                      <td className="border px-4 py-2 text-center print:hidden">
+                      <td className="border px-2 py-1 text-center print:hidden">
                         <button onClick={() => excluirLancamentoTronco('tronco', tronco.id)} className="text-red-600 hover:text-red-800">
                           <Trash2 size={18} />
                         </button>
@@ -851,29 +803,29 @@ export default function DetalhePlanilhaPage() {
               </table>
             </div>
           )}
-          
+
           {/* Tabela de Doações Filantrópicas */}
           {planilha.doacoesFilantropicas && planilha.doacoesFilantropicas.length > 0 && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Doações Filantrópicas (Gastos do Tronco)</h3>
-              <table className="w-full border-2 border-gray-300">
+            <div className="mb-3 break-inside-avoid">
+              <h3 className="text-lg font-bold text-gray-800 mb-2">Doações Filantrópicas (Gastos do Tronco)</h3>
+              <table className="w-full border-2 border-gray-300 text-sm">
                 <thead className="bg-orange-100 text-gray-900">
                   <tr>
-                    <th className="border px-4 py-2 text-left">Descrição</th>
-                    <th className="border px-4 py-2 text-left">Data do Pagamento</th>
-                    <th className="border px-4 py-2 text-right">Valor</th>
-                    <th className="border px-4 py-2 text-center print:hidden">Ação</th>
+                    <th className="border px-2 py-1 text-left">Descrição</th>
+                    <th className="border px-2 py-1 text-left">Data do Pagamento</th>
+                    <th className="border px-2 py-1 text-right">Valor</th>
+                    <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
                 </thead>
                 <tbody>
                   {planilha.doacoesFilantropicas.map(doacao => (
                     <tr key={doacao.id}>
-                      <td className="border text-gray-900 px-4 py-2">{doacao.descricao}</td>
-                      <td className="border text-gray-900 px-4 py-2 text-sm">{new Date(doacao.dataPagamento).toLocaleDateString()}</td>
-                      <td className="border px-4 py-2 text-right text-red-600 font-bold">
+                      <td className="border text-gray-900 px-2 py-1">{doacao.descricao}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(doacao.dataPagamento).toLocaleDateString()}</td>
+                      <td className="border px-2 py-1 text-right text-red-600 font-bold">
                         R$ {Number(doacao.valor).toFixed(2)}
                       </td>
-                      <td className="border px-4 py-2 text-center print:hidden">
+                      <td className="border px-2 py-1 text-center print:hidden">
                         <button onClick={() => excluirLancamentoTronco('filantropia', doacao.id)} className="text-red-600 hover:text-red-800">
                           <Trash2 size={18} />
                         </button>
@@ -885,47 +837,122 @@ export default function DetalhePlanilhaPage() {
             </div>
           )}
 
+          {/* Resumo Movimento de Caixa */}
+          <div className="mb-4 p-3 border-b-4 border-blue-500 bg-blue-50 rounded-lg break-inside-avoid mt-6">
+            <h3 className="text-lg font-bold text-blue-800 mb-3 flex items-center gap-2"><Briefcase size={20} /> Resumo Movimento de Caixa (Caixa Geral)</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm font-semibold">
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Saldo Inicial</div>
+                    <div className="text-gray-800">R$ {Number(planilha.saldoInicialCaixa).toFixed(2)}</div>
+                </div>
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Total Mensalidades</div>
+                    <div className="text-green-600">R$ {planilha.pagamentos.filter(p => p.quantidadeMeses > 0).reduce((sum, p) => sum + Number(p.valorPago), 0).toFixed(2)}</div>
+                </div>
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Outros Recebimentos</div>
+                    <div className="text-green-600">R$ {planilha.receitas.reduce((sum, r) => sum + Number(r.valor), 0).toFixed(2)}</div>
+                </div>
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Total Despesas</div>
+                    <div className="text-red-600">R$ {Number(planilha.totalDespesas).toFixed(2)}</div>
+                </div>
+                <div className="p-2 font-bold text-lg">
+                    <div className="text-gray-700">Saldo Final Caixa</div>
+                    <div className={getCorSaldo(planilha.saldoFinalCaixa)}>R$ {Number(planilha.saldoFinalCaixa).toFixed(2)}</div>
+                </div>
+            </div>
+          </div>
+
+          {/* Resumo Tronco de Beneficência */}
+          <div className="mb-4 p-3 border-b-4 border-yellow-500 bg-yellow-50 rounded-lg break-inside-avoid">
+            <h3 className="text-lg font-bold text-yellow-800 mb-3 flex items-center gap-2"><DollarSign size={20} /> Resumo Tronco de Beneficência</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm font-semibold">
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Saldo Inicial</div>
+                    <div className="text-gray-800">R$ {Number(planilha.saldoInicialTronco).toFixed(2)}</div>
+                </div>
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Total Recebido Mês</div>
+                    <div className="text-green-600">R$ {Number(planilha.totalTroncoRecebido).toFixed(2)}</div>
+                </div>
+                <div className="p-2 border-r">
+                    <div className="text-gray-600">Total Doações Filantrópicas</div>
+                    <div className="text-red-600">R$ {Number(planilha.totalDoacoesFilantropicas).toFixed(2)}</div>
+                </div>
+                <div className="p-2 font-bold text-lg col-span-2 md:col-span-2">
+                    <div className="text-gray-700">Saldo Final Tronco</div>
+                    <div className={getCorSaldo(planilha.saldoFinalTronco)}>R$ {Number(planilha.saldoFinalTronco).toFixed(2)}</div>
+                </div>
+            </div>
+          </div>
+
+          {/* Saldo Final Total */}
+          <div className="mb-4 text-right p-2 bg-gray-200 rounded-lg break-inside-avoid">
+              <span className="text-xl font-bold text-gray-800">SALDO FINAL TOTAL (Caixa + Tronco): </span>
+              <span className={`text-2xl font-extrabold ${getCorSaldo(saldoFinalTotal)}`}>R$ {saldoFinalTotal.toFixed(2)}</span>
+          </div>
+
           {/* Local e Assinaturas */}
-          <div className="mt-12 text-center text-lg font-serif text-gray-900">
-            <p className="mb-10 text-gray-900 font-bold">
+          <div className="mt-6 text-center text-base font-serif text-gray-900 break-inside-avoid page-break-before">
+            <p className="mb-6 text-gray-900 font-bold">
                 {localidade.toUpperCase()}, {diaAssinatura} de {meses[mesAssinatura - 1].toLowerCase()} de {anoAssinatura}.
             </p>
-            
-            <div className="grid grid-cols-2 gap-32 pt-8 max-w-2xl mx-auto"> 
+
+            <div className="grid grid-cols-2 gap-12 pt-4 px-4">
                 <div className="flex flex-col items-center">
-                    <div className="h-16 border-b border-gray-800 w-full mb-1">
+                    <div className="h-14 w-full mb-1">
                         {veneravelMestre && veneravelMestre.assinaturaUrl && (
-                          <img 
-                            src={veneravelMestre.assinaturaUrl} 
-                            alt="Assinatura VM" 
+                          <img
+                            src={veneravelMestre.assinaturaUrl}
+                            alt="Assinatura VM"
                             className="h-full w-auto mx-auto object-contain"
                           />
                         )}
                     </div>
-                    <p className="font-bold">Venerável Mestre</p>
                     {veneravelMestre && (
-                        <span className="text-xs text-gray-900">CIM: {veneravelMestre.cim}</span>
+                        <div className="flex flex-col items-center gap-0">
+                          <p className="text-sm text-gray-900 whitespace-nowrap leading-tight">{veneravelMestre.nome}</p>
+                          <p className="font-bold text-sm whitespace-nowrap leading-tight">Venerável Mestre</p>
+                          <span className="text-xs text-gray-900 whitespace-nowrap leading-tight">CIM: {veneravelMestre.cim}</span>
+                        </div>
                     )}
                 </div>
-                
+
                 <div className="flex flex-col items-center">
-                    <div className="h-16 border-b border-gray-800 w-full mb-1">
+                    <div className="h-14 w-full mb-1">
                         {tesoureiro && tesoureiro.assinaturaUrl && (
-                          <img 
-                            src={tesoureiro.assinaturaUrl} 
-                            alt="Assinatura Tesoureiro" 
+                          <img
+                            src={tesoureiro.assinaturaUrl}
+                            alt="Assinatura Tesoureiro"
                             className="h-full w-auto mx-auto object-contain"
                           />
                         )}
                     </div>
-                    <p className="font-bold">Tesoureiro</p>
-                     {tesoureiro && (
-                        <span className="text-xs text-gray-900">CIM: {tesoureiro.cim}</span>
+                    {tesoureiro && (
+                        <div className="flex flex-col items-center gap-0">
+                          <p className="text-sm text-gray-900 whitespace-nowrap leading-tight">{tesoureiro.nome}</p>
+                          <p className="font-bold text-sm whitespace-nowrap leading-tight">Tesoureiro</p>
+                          <span className="text-xs text-gray-900 whitespace-nowrap leading-tight">CIM: {tesoureiro.cim}</span>
+                        </div>
                     )}
                 </div>
             </div>
           </div>
         </div>
+
+        <style jsx global>{`
+          @media print {
+            .break-inside-avoid {
+              break-inside: avoid;
+              page-break-inside: avoid;
+            }
+            .page-break-before {
+              break-before: auto;
+              page-break-before: auto;
+            }
+          }
+        `}</style>
 
         {/* Botões de Ação */}
         <div className="mt-6 flex gap-4 print:hidden flex-wrap">
