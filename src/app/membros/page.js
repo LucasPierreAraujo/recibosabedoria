@@ -1,3 +1,5 @@
+// SEU ARQUIVO: MembrosPage.js
+
 "use client"
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,7 +21,8 @@ export default function MembrosPage() {
     dataIniciacao: '',
     dataFiliacao: '',
     dataPassagemGrau: '',
-    dataElevacao: ''
+    dataElevacao: '',
+    dataInstalacao: '' // <--- CAMPO ADICIONADO NO ESTADO
   });
 
   const graus = ['CANDIDATO', 'APRENDIZ', 'COMPANHEIRO', 'MESTRE'];
@@ -63,7 +66,7 @@ export default function MembrosPage() {
   // ================== VALIDAÇÃO ==================
   const validarCampos = () => {
     const { grau, cim, dataIniciacao, dataFiliacao, dataPassagemGrau, dataElevacao } = formData;
-
+    
     if (grau === 'MESTRE') {
       if (!cim) { alert('CIM é obrigatório para Mestre'); return false; }
       if (!dataIniciacao && !dataFiliacao) { alert('Data de Iniciação ou Filiação é obrigatória para Mestre'); return false; }
@@ -99,10 +102,10 @@ export default function MembrosPage() {
   }
 
   // Mostrar loading
-  const loading = document.createElement('div');
-  loading.className = 'text-center text-sm text-gray-600 mt-2';
-  loading.textContent = 'Fazendo upload...';
-  e.target.parentElement.appendChild(loading);
+  const loadingElement = document.createElement('div');
+  loadingElement.className = 'text-center text-sm text-gray-600 mt-2';
+  loadingElement.textContent = 'Fazendo upload...';
+  e.target.parentElement.appendChild(loadingElement);
 
   try {
     // Converter para base64
@@ -128,14 +131,14 @@ export default function MembrosPage() {
         console.error('Erro:', error);
         alert('Erro ao fazer upload');
       } finally {
-        loading.remove();
+        loadingElement.remove();
       }
     };
     reader.readAsDataURL(file);
   } catch (error) {
     console.error('Erro ao ler arquivo:', error);
     alert('Erro ao processar imagem');
-    loading.remove();
+    loadingElement.remove();
   }
 };
 
@@ -146,20 +149,24 @@ export default function MembrosPage() {
     if (!validarCampos()) return;
 
     try {
-      if (editingId) {
-        await fetch('/api/membros', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...formData, id: editingId })
-        });
-      } else {
-        await fetch('/api/membros', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
-        });
+      const method = editingId ? 'PUT' : 'POST';
+      const bodyData = editingId ? { ...formData, id: editingId } : formData;
+
+      const response = await fetch('/api/membros', {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData)
+      });
+      
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Erro na API:', data);
+        alert(`Erro ao salvar membro: ${data.details || data.error || 'Erro desconhecido'}`);
+        return;
       }
 
+      // Resetar formulário após sucesso
       setFormData({
         nome: '',
         grau: '',
@@ -170,7 +177,8 @@ export default function MembrosPage() {
         dataIniciacao: '',
         dataFiliacao: '',
         dataPassagemGrau: '',
-        dataElevacao: ''
+        dataElevacao: '',
+        dataInstalacao: '' // <--- RESETADO
       });
       setShowForm(false);
       setEditingId(null);
@@ -210,7 +218,8 @@ export default function MembrosPage() {
       dataIniciacao: membro.dataIniciacao || '',
       dataFiliacao: membro.dataFiliacao || '',
       dataPassagemGrau: membro.dataPassagemGrau || '',
-      dataElevacao: membro.dataElevacao || ''
+      dataElevacao: membro.dataElevacao || '',
+      dataInstalacao: membro.dataInstalacao || '' // <--- CARREGADO
     });
     setEditingId(membro.id);
     setShowForm(true);
@@ -227,7 +236,8 @@ export default function MembrosPage() {
       dataIniciacao: '',
       dataFiliacao: '',
       dataPassagemGrau: '',
-      dataElevacao: ''
+      dataElevacao: '',
+      dataInstalacao: '' // <--- RESETADO
     });
     setShowForm(false);
     setEditingId(null);
@@ -240,6 +250,8 @@ export default function MembrosPage() {
   const mostrarDataPassagemGrau = ['COMPANHEIRO', 'MESTRE'].includes(formData.grau);
   const mostrarDataElevacao = formData.grau === 'MESTRE';
   const mostrarCargo = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'].includes(formData.grau);
+  // Mostrar Data de Instalação se houver um Cargo selecionado
+  const mostrarDataInstalacao = formData.cargo && formData.cargo !== ''; 
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -322,7 +334,21 @@ export default function MembrosPage() {
                 </div>
               </div>
 
-              {/* Datas */}
+              {/* Cargo */}
+              {mostrarCargo && (
+                <div>
+                  <label className="block text-sm font-bold mb-1 text-gray-700">Cargo em Loja</label>
+                  <select
+                    value={formData.cargo}
+                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
+                    className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-800"
+                  >
+                    {cargos.map(c => <option key={c} value={c}>{c || 'Sem cargo'}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {/* Datas de Iniciação/Filiação */}
               {(mostrarDataIniciacao || mostrarDataFiliacao) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {mostrarDataIniciacao && (
@@ -350,8 +376,9 @@ export default function MembrosPage() {
                 </div>
               )}
 
-              {(mostrarDataPassagemGrau || mostrarDataElevacao) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Datas de Grau/Elevação/Instalação */}
+              {(mostrarDataPassagemGrau || mostrarDataElevacao || mostrarDataInstalacao) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {mostrarDataPassagemGrau && (
                     <div>
                       <label className="block text-sm font-bold mb-1 text-gray-700">Data de Passagem de Grau *</label>
@@ -374,20 +401,17 @@ export default function MembrosPage() {
                       />
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Cargo */}
-              {mostrarCargo && (
-                <div>
-                  <label className="block text-sm font-bold mb-1 text-gray-700">Cargo em Loja</label>
-                  <select
-                    value={formData.cargo}
-                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                    className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-800"
-                  >
-                    {cargos.map(c => <option key={c} value={c}>{c || 'Sem cargo'}</option>)}
-                  </select>
+                  {mostrarDataInstalacao && ( // <--- CAMPO ADICIONADO NO FORM
+                    <div>
+                      <label className="block text-sm font-bold mb-1 text-gray-700">Data de Instalação</label>
+                      <input
+                        type="date"
+                        value={formData.dataInstalacao}
+                        onChange={(e) => setFormData({ ...formData, dataInstalacao: e.target.value })}
+                        className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-800"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
