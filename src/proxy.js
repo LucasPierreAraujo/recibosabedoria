@@ -1,4 +1,4 @@
-// middleware.js
+// proxy.js
 import { NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
@@ -7,10 +7,10 @@ const SECRET_KEY = new TextEncoder().encode(
 );
 
 /**
- * Middleware de autenticação
+ * Proxy de autenticação
  * Protege rotas que requerem autenticação
  */
-export async function middleware(req) {
+export async function proxy(req) {
   const { pathname } = req.nextUrl;
 
   // Rotas públicas (não precisam de autenticação)
