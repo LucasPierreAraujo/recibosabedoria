@@ -1,69 +1,100 @@
-// app/api/planilhas/route.js
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
-// GET - Listar todas as planilhas (agrupadas por ano)
+// =====================================================================
+// GET: Buscar todas as planilhas OU uma planilha específica por ID
+// =====================================================================
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const ano = searchParams.get('ano');
-    const mes = searchParams.get('mes');
-    
-    if (ano && mes) {
-      // Buscar planilha específica
+    const id = searchParams.get('id');
+
+    // Se tem ID, busca planilha específica
+    if (id) {
       const planilha = await prisma.planilhaFinanceira.findUnique({
-        where: {
-          mes_ano: {
-            mes: parseInt(mes),
-            ano: parseInt(ano)
-          }
-        },
+        where: { id },
         include: {
-          receitas: true,
-          despesas: true,
           pagamentos: {
             include: {
-              membro: true
-            }
-          }
-        }
+              membro: true,
+            },
+          },
+          receitas: true,
+          despesas: true,
+          troncos: true,
+          doacoesFilantropicas: true,
+        },
       });
+
+      if (!planilha) {
+        return NextResponse.json({ error: 'Planilha não encontrada' }, { status: 404 });
+      }
+
       return NextResponse.json(planilha);
     }
-    
-    // Listar todas as planilhas
+
+    // Se não tem ID, lista todas as planilhas (SEM includes para evitar erros)
     const planilhas = await prisma.planilhaFinanceira.findMany({
       orderBy: [
         { ano: 'desc' },
-        { mes: 'desc' }
+        { mes: 'desc' },
       ],
-      include: {
+      select: {
+        id: true,
+        mes: true,
+        ano: true,
+        valorMensalidade: true,
+        valorMensalidadeExcecao: true,
+        saldoInicialCaixa: true,
+        saldoInicialTronco: true,
+        totalReceitas: true,
+        totalDespesas: true,
+        saldoFinalCaixa: true,
+        saldoFinalTronco: true,
+        totalTroncoRecebido: true,
+        totalDoacoesFilantropicas: true,
+        saldoFinal: true,
+        createdAt: true,
         _count: {
-          select: {
-            receitas: true,
-            despesas: true,
-            pagamentos: true
+          select: { 
+            pagamentos: true 
           }
         }
       }
     });
-    
+
     return NextResponse.json(planilhas);
   } catch (error) {
-    console.error('Erro ao buscar planilhas:', error);
-    return NextResponse.json({ error: 'Erro ao buscar planilhas' }, { status: 500 });
+    console.error('Erro ao buscar planilha(s):', error);
+    return NextResponse.json(
+      { error: 'Erro ao buscar planilha(s)', details: error.message },
+      { status: 500 }
+    );
   }
 }
 
-// POST - Criar nova planilha
+// =====================================================================
+// POST: Criar uma nova planilha (COM REGISTRO DE INADIMPLÊNCIA INDIVIDUAL)
+// =====================================================================
 export async function POST(request) {
   try {
-    const { mes, ano, valorMensalidade } = await request.json();
+    const { 
+        mes, 
+        ano, 
+        valorMensalidade, // Já é float puro
+        saldoInicialCaixa, // Já é float puro
+        saldoInicialTronco, // Já é float puro
+        valorMensalidadeExcecao, // Já é float puro
+        membrosExcecaoIds, // String CSV
+        // ESTE É O OBJETO DE INADIMPLÊNCIA CORRIGIDO PELO FRONTEND
+        inadimplenciaPorMembro 
+    } = await request.json();
     
-    // Verificar se já existe
-    const existe = await prisma.planilhaFinanceira.findUnique({
+    // 1. Verificação de existência
+    const existe = await prisma.planilhaFinanceira.findFirst({
       where: {
-        mes_ano: { mes, ano }
+        mes: mes,
+        ano: ano
       }
     });
     
@@ -71,68 +102,102 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Planilha já existe para este mês/ano' }, { status: 400 });
     }
     
-    // Buscar membros ativos
-    const membrosAtivos = await prisma.membro.findMany({
-      where: { status: 'ATIVO', grau: { not: 'CANDIDATO' } }
-    });
+    // 2. Criação da Planilha
     
-    // Criar planilha
+    // O Frontend já está enviando floats aqui, mas vamos garantir que o Prisma os receba como Number,
+    // caso o tipo no schema seja Decimal, eles serão tratados corretamente.
+    const caixaInicial = saldoInicialCaixa || 0;
+    const troncoInicial = saldoInicialTronco || 0;
+    
+    const excecaoValor = valorMensalidadeExcecao > 0 ? valorMensalidadeExcecao : null; 
+    
     const planilha = await prisma.planilhaFinanceira.create({
       data: {
         mes,
         ano,
-        valorMensalidade
+        valorMensalidade, // Usa o float enviado
+        saldoInicialCaixa: caixaInicial,
+        saldoInicialTronco: troncoInicial,
+        saldoFinalCaixa: caixaInicial, 
+        saldoFinalTronco: troncoInicial,
+        saldoFinal: caixaInicial + troncoInicial,
+        
+        valorMensalidadeExcecao: excecaoValor,
+        membrosExcecaoIds: membrosExcecaoIds 
       }
     });
     
-    // Verificar inadimplentes do mês anterior
-    const mesAnterior = mes === 1 ? 12 : mes - 1;
-    const anoAnterior = mes === 1 ? ano - 1 : ano;
+    const pagamentosInadimplencia = [];
+    const mesesReferencia = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     
-    const planilhaAnterior = await prisma.planilhaFinanceira.findUnique({
-      where: {
-        mes_ano: { mes: mesAnterior, ano: anoAnterior }
-      },
-      include: {
-        pagamentos: true
-      }
-    });
-    
-    // Identificar quem não pagou no mês anterior
-    let inadimplentes = [];
-    if (planilhaAnterior) {
-      const pagadores = planilhaAnterior.pagamentos.map(p => p.membroId);
-      inadimplentes = membrosAtivos.filter(m => !pagadores.includes(m.id));
+    // 3. Registro da Inadimplência
+    if (inadimplenciaPorMembro && Object.keys(inadimplenciaPorMembro).length > 0) {
+        
+        for (const membroId in inadimplenciaPorMembro) {
+            // O frontend envia [{mes: X, ano: Y}, ...]
+            const mesesDevidos = inadimplenciaPorMembro[membroId]; 
+            
+            if (mesesDevidos.length > 0) {
+                
+                // Formata a string de meses referentes (ex: JAN/24, FEV/24)
+                const mesesRefStr = mesesDevidos.map(m => 
+                    `${mesesReferencia[m.mes - 1]}/${String(m.ano).slice(-2)}`
+                ).join(', ');
+                
+                pagamentosInadimplencia.push({
+                    planilhaId: planilha.id,
+                    membroId: membroId,
+                    // Marca como negativo para indicar DÍVIDA (registro de inadimplência)
+                    quantidadeMeses: mesesDevidos.length * -1, 
+                    valorPago: 0, // Inadimplência não tem valor pago
+                    mesesReferentes: mesesRefStr,
+                    dataPagamento: new Date(),
+                });
+            }
+        }
+        
+        if (pagamentosInadimplencia.length > 0) {
+            await prisma.pagamentoMensalidade.createMany({
+                data: pagamentosInadimplencia,
+            });
+        }
     }
     
     return NextResponse.json({ 
       success: true, 
-      planilha,
-      inadimplentes: inadimplentes.map(i => ({
-        id: i.id,
-        nome: i.nome,
-        mesesDevendo: 1
-      }))
+      planilha
     });
     
   } catch (error) {
     console.error('Erro ao criar planilha:', error);
-    return NextResponse.json({ error: 'Erro ao criar planilha' }, { status: 500 });
+    return NextResponse.json(
+        { error: 'Erro ao criar planilha', details: error.message }, 
+        { status: 500 }
+    );
   }
 }
 
-// DELETE - Excluir planilha
+// =====================================================================
+// DELETE: Excluir uma planilha
+// =====================================================================
 export async function DELETE(request) {
   try {
     const { id } = await request.json();
+
+    if (!id) {
+        return NextResponse.json({ error: 'ID da planilha é obrigatório' }, { status: 400 });
+    }
     
     await prisma.planilhaFinanceira.delete({
-      where: { id }
+      where: { id: id }
     });
-    
-    return NextResponse.json({ success: true });
+
+    return NextResponse.json({ success: true, message: 'Planilha excluída com sucesso.' });
   } catch (error) {
     console.error('Erro ao excluir planilha:', error);
-    return NextResponse.json({ error: 'Erro ao excluir planilha' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Erro ao excluir planilha.' },
+      { status: 500 }
+    );
   }
 }
