@@ -361,24 +361,24 @@ export default function VisualizarAtaPage() {
 
       {/* Conteúdo da Ata */}
       <main className="w-full p-2 md:p-8">
-        <div className="bg-white shadow-2xl rounded-lg overflow-x-auto">
-          <div id="ata-completa" className="bg-white p-4 md:p-8 min-w-[210mm]" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto' }}>
+        <div className="bg-white shadow-2xl rounded-lg">
+          <div id="ata-completa" className="bg-white p-4 md:p-8 max-w-full md:max-w-[210mm]" style={{ margin: '0 auto' }}>
 
             {/* Cabeçalho com logos - será repetido em todas as páginas */}
-            <div id="ata-cabecalho" className="mb-6">
+            <div id="ata-cabecalho" className="mb-4 md:mb-6">
               <div className="flex justify-between items-start mb-4">
-                <img src="/logo-gob.jpeg" alt="GOB" className="h-24 w-24" />
-                <div className="text-center flex-1 mx-4">
-                  <h1 className="text-xl font-bold text-gray-900 mb-2">
+                <img src="/logo-gob.jpeg" alt="GOB" className="h-12 w-12 md:h-20 md:w-20" />
+                <div className="text-center flex-1 mx-2 md:mx-4">
+                  <h1 className="text-xs md:text-lg font-bold text-gray-900 mb-1 md:mb-2">
                     Augusta e Respeitável Loja Simbólica<br />
                     Sabedoria de Salomão Nº 4.774
                   </h1>
-                  <p className="text-sm text-gray-700">
+                  <p className="text-[10px] md:text-sm text-gray-700">
                     Rua João Aires de Aquino, Nº29, Vila Alta, 63119-450
                   </p>
-                  <p className="text-sm text-gray-700 font-semibold">Crato-Ceará</p>
+                  <p className="text-[10px] md:text-sm text-gray-700 font-semibold">Crato-Ceará</p>
                 </div>
-                <img src="/logo.jpeg" alt="Loja" className="h-24 w-24" />
+                <img src="/logo.jpeg" alt="Loja" className="h-12 w-12 md:h-20 md:w-20" />
               </div>
             </div>
 
@@ -386,24 +386,24 @@ export default function VisualizarAtaPage() {
             <div id="ata-corpo">
 
             {/* Título */}
-            <div className="text-center mb-6">
-              <h2 className="text-lg font-bold text-gray-900">GRANDE ORIENTE DO BRASIL</h2>
-              <h3 className="text-base font-bold text-gray-900">ORIENTE DE CRATO-CE</h3>
-              <h3 className="text-base font-bold text-gray-900">
+            <div className="text-center mb-4 md:mb-6">
+              <h2 className="text-sm md:text-lg font-bold text-gray-900">GRANDE ORIENTE DO BRASIL</h2>
+              <h3 className="text-xs md:text-base font-bold text-gray-900">ORIENTE DE CRATO-CE</h3>
+              <h3 className="text-xs md:text-base font-bold text-gray-900">
                 LIVRO DO {ata.livro} MAÇOM
               </h3>
-              <h3 className="text-base font-bold text-gray-900 mt-2">ATA {ata.numeroAta}</h3>
+              <h3 className="text-xs md:text-base font-bold text-gray-900 mt-1 md:mt-2">ATA {ata.numeroAta}</h3>
             </div>
 
-            <hr className="border-t-2 border-gray-900 mb-4" />
+            <hr className="border-t-2 border-gray-900 mb-3 md:mb-4" />
 
             {/* Subtítulo */}
-            <h4 className="text-center text-base font-bold text-gray-900 mb-4">
+            <h4 className="text-center text-xs md:text-base font-bold text-gray-900 mb-3 md:mb-4">
               ATA SESSÃO MAGNA DE {ata.livro}
             </h4>
 
             {/* Corpo da ata - texto contínuo sem quebras */}
-            <div className="text-justify text-sm leading-relaxed text-gray-900" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+            <div className="text-justify text-xs md:text-sm leading-relaxed text-gray-900" style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
               <p style={{ wordWrap: 'break-word', overflowWrap: 'break-word' }}>
                 <strong>Ata {ata.numeroAta}</strong> da sessão ordinária no grau de {ata.livro} Maçom do Rito Schröder, da <strong>A.R.L.S. Sabedoria de Salomão nº 4.774</strong>, realizada na Rua Virgílio Arrais, bairro Grangeiro, Crato–CE, aos {dia} ({
                   ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez',
@@ -493,39 +493,39 @@ export default function VisualizarAtaPage() {
             </div>
 
             {/* Assinaturas - só aparece na última página */}
-            <div id="ata-assinaturas" className="mt-16">
-              <div className="flex justify-between items-end px-8">
-              <div className="text-center">
-                <div className="border-b-2 border-gray-900 w-48 mb-2"></div>
-                <p className="text-sm font-bold text-gray-900">
+            <div id="ata-assinaturas" className="mt-8 md:mt-16">
+              <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 md:gap-0 px-2 md:px-8">
+              <div className="text-center w-full md:w-auto">
+                <div className="border-b-2 border-gray-900 w-32 md:w-48 mb-2 mx-auto"></div>
+                <p className="text-[10px] md:text-sm font-bold text-gray-900">
                   {ata.cargos.find(c => c.cargo === 'Venerável Mestre')
                     ? (ata.cargos.find(c => c.cargo === 'Venerável Mestre').membro?.nome ||
                        ata.cargos.find(c => c.cargo === 'Venerável Mestre').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-xs text-gray-900">Venerável Mestre</p>
+                <p className="text-[9px] md:text-xs text-gray-900">Venerável Mestre</p>
               </div>
 
-              <div className="text-center">
-                <div className="border-b-2 border-gray-900 w-48 mb-2"></div>
-                <p className="text-sm font-bold text-gray-900">
+              <div className="text-center w-full md:w-auto">
+                <div className="border-b-2 border-gray-900 w-32 md:w-48 mb-2 mx-auto"></div>
+                <p className="text-[10px] md:text-sm font-bold text-gray-900">
                   {ata.cargos.find(c => c.cargo === 'Secretário')
                     ? (ata.cargos.find(c => c.cargo === 'Secretário').membro?.nome ||
                        ata.cargos.find(c => c.cargo === 'Secretário').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-xs text-gray-900">Secretário</p>
+                <p className="text-[9px] md:text-xs text-gray-900">Secretário</p>
               </div>
 
-              <div className="text-center">
-                <div className="border-b-2 border-gray-900 w-48 mb-2"></div>
-                <p className="text-sm font-bold text-gray-900">
+              <div className="text-center w-full md:w-auto">
+                <div className="border-b-2 border-gray-900 w-32 md:w-48 mb-2 mx-auto"></div>
+                <p className="text-[10px] md:text-sm font-bold text-gray-900">
                   {ata.cargos.find(c => c.cargo === 'Orador')
                     ? (ata.cargos.find(c => c.cargo === 'Orador').membro?.nome ||
                        ata.cargos.find(c => c.cargo === 'Orador').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-xs text-gray-900">Orador</p>
+                <p className="text-[9px] md:text-xs text-gray-900">Orador</p>
               </div>
               </div>
             </div>
