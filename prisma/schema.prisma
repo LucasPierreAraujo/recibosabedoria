@@ -43,6 +43,7 @@ model Membro {
   pagamentos       PagamentoMensalidade[]
   atasCargos       AtaCargo[]
   atasPresencas    AtaPresenca[]
+  presencas        Presenca[]
 
   @@map("membros")
 }
@@ -197,15 +198,45 @@ model AtaPresenca {
   id          String  @id @default(cuid())
   ataId       String
   ata         Ata     @relation(fields: [ataId], references: [id], onDelete: Cascade)
-  
+
   // Pode ser um membro cadastrado OU um nome digitado manualmente
   membroId    String?
   membro      Membro? @relation(fields: [membroId], references: [id])
   nomeManual  String? // Nome digitado manualmente (se não for membro cadastrado)
-  
+
   tipo        String  // "QUADRO" ou "VISITANTE"
-  
+
   @@map("atas_presencas")
+}
+
+// Modelos para controle de presença em reuniões
+model Reuniao {
+  id        String     @id @default(cuid())
+  data      DateTime
+  grau      String     // "APRENDIZ", "COMPANHEIRO", "MESTRE"
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  presencas Presenca[]
+
+  @@map("reunioes")
+}
+
+model Presenca {
+  id        String   @id @default(cuid())
+  reuniaoId String
+  membroId  String
+  presente  Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reuniao   Reuniao  @relation(fields: [reuniaoId], references: [id], onDelete: Cascade)
+  membro    Membro   @relation(fields: [membroId], references: [id], onDelete: Cascade)
+
+  @@unique([reuniaoId, membroId])
+  @@map("presencas")
 }
 
 // Adicione estas relações ao modelo Membro existente:
@@ -213,4 +244,5 @@ model AtaPresenca {
 //   ...
 //   atasCargos    AtaCargo[]
 //   atasPresencas AtaPresenca[]
+//   presencas     Presenca[]
 // }

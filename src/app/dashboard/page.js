@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Users, LogOut, BookOpen, DollarSign } from 'lucide-react';
+import { FileText, Users, LogOut, BookOpen, DollarSign, ClipboardCheck } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto p-8">
         <h2 className="text-3xl font-bold text-gray-800 mb-8">Dashboard</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Card Gerar Recibo */}
           <div
             onClick={() => router.push('/recibo')}
@@ -99,6 +99,22 @@ export default function DashboardPage() {
             </div>
             <p className="text-gray-600">
               Gere e gerencie atas das sessões maçônicas da loja
+            </p>
+          </div>
+
+          {/* Card Presenças */}
+          <div
+            onClick={() => router.push('/presencas')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-indigo-600"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-indigo-100 p-4 rounded-full">
+                <ClipboardCheck size={32} className="text-indigo-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Controle de Presenças</h3>
+            </div>
+            <p className="text-gray-600">
+              Registre e gerencie presenças dos membros nas sessões
             </p>
           </div>
         </div>
