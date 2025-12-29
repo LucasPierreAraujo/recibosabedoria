@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, FileText, Calendar, Download, Trash2, Edit, Home, Eye } from 'lucide-react';
+import { Plus, FileText, Calendar, Trash2, Edit, Home, Eye } from 'lucide-react';
 
 export default function AtasPage() {
   const router = useRouter();
@@ -50,10 +50,6 @@ export default function AtasPage() {
       console.error('Erro ao excluir ata:', error);
       alert('Erro ao excluir ata');
     }
-  };
-
-  const gerarPDF = async (id) => {
-    window.open(`/atas/${id}/gerar`, '_blank');
   };
 
   if (loading) {
@@ -156,13 +152,6 @@ export default function AtasPage() {
                             title="Editar"
                           >
                             <Edit size={18} />
-                          </button>
-                          <button
-                            onClick={() => gerarPDF(ata.id)}
-                            className="p-2 text-green-600 hover:bg-green-50 rounded"
-                            title="Gerar PDF"
-                          >
-                            <Download size={18} />
                           </button>
                           <button
                             onClick={() => excluirAta(ata.id)}
