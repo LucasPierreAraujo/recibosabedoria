@@ -18,7 +18,7 @@ export default function GerarPDFAtaPage() {
       const response = await fetch(`/api/atas/${params.id}`);
       if (response.ok) {
         const data = await response.json();
-        gerarPDF(data);
+        await gerarPDF(data);
       } else {
         alert('Ata não encontrada');
         router.push('/atas');
@@ -30,7 +30,7 @@ export default function GerarPDFAtaPage() {
     }
   };
 
-  const gerarPDF = async (ataData) => {
+  const gerarPDF = async (ata) => {
     try {
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -42,224 +42,255 @@ export default function GerarPDFAtaPage() {
       const pageHeight = 297;
       const margin = 15;
       const maxWidth = pageWidth - (2 * margin);
+      const headerHeight = 35;
       let yPosition = margin;
+      let logoGobImg, logoImg;
 
-      // Helper function to add text with auto line breaks
-      const addText = (text, fontSize, isBold, align = 'left') => {
-        pdf.setFontSize(fontSize);
-        pdf.setFont('helvetica', isBold ? 'bold' : 'normal');
-        const lines = pdf.splitTextToSize(text, maxWidth);
-
-        lines.forEach((line) => {
-          if (yPosition > pageHeight - margin) {
-            pdf.addPage();
-            yPosition = margin;
-          }
-
-          let xPosition = margin;
-          if (align === 'center') {
-            const textWidth = pdf.getTextWidth(line);
-            xPosition = (pageWidth - textWidth) / 2;
-          }
-
-          pdf.text(line, xPosition, yPosition);
-          yPosition += fontSize * 0.5;
-        });
-      };
-
-      // Carregar e adicionar logos
+      // Carregar logos uma vez
       try {
-        const logoGobImg = await fetch('/logo-gob.jpeg').then(r => r.blob()).then(b => new Promise((resolve) => {
+        logoGobImg = await fetch('/logo-gob.jpeg').then(r => r.blob()).then(b => new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(b);
         }));
 
-        const logoImg = await fetch('/logo.jpeg').then(r => r.blob()).then(b => new Promise((resolve) => {
+        logoImg = await fetch('/logo.jpeg').then(r => r.blob()).then(b => new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => resolve(reader.result);
           reader.readAsDataURL(b);
         }));
-
-        // Logo GOB (esquerda)
-        pdf.addImage(logoGobImg, 'JPEG', margin, yPosition, 25, 25);
-
-        // Logo Loja (direita)
-        pdf.addImage(logoImg, 'JPEG', pageWidth - margin - 25, yPosition, 25, 25);
       } catch (error) {
         console.error('Erro ao carregar logos:', error);
       }
 
-      // Cabeçalho centralizado (entre as logos)
-      const headerY = yPosition + 3;
-      yPosition = headerY;
-      addText('Augusta e Respeitável Loja Simbólica', 11, true, 'center');
-      addText('Sabedoria de Salomão Nº 4.774', 11, true, 'center');
-      yPosition += 2;
-      addText('Rua João Aires de Aquino, Nº29, Vila Alta, 63119-450', 9, false, 'center');
-      addText('Crato-Ceará', 9, true, 'center');
+      // Função para adicionar cabeçalho em cada página
+      const addHeader = () => {
+        const startY = margin;
 
-      yPosition = Math.max(yPosition, headerY + 25) + 8;
+        // Logos
+        if (logoGobImg && logoImg) {
+          pdf.addImage(logoGobImg, 'JPEG', margin, startY, 25, 25);
+          pdf.addImage(logoImg, 'JPEG', pageWidth - margin - 25, startY, 25, 25);
+        }
+
+        // Texto do cabeçalho
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'bold');
+        let headerTextY = startY + 3;
+
+        pdf.text('Augusta e Respeitável Loja Simbólica', pageWidth / 2, headerTextY, { align: 'center' });
+        headerTextY += 5;
+        pdf.text('Sabedoria de Salomão Nº 4.774', pageWidth / 2, headerTextY, { align: 'center' });
+        headerTextY += 5;
+
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Rua João Aires de Aquino, Nº29, Vila Alta, 63119-450', pageWidth / 2, headerTextY, { align: 'center' });
+        headerTextY += 4;
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Crato-Ceará', pageWidth / 2, headerTextY, { align: 'center' });
+
+        return margin + headerHeight;
+      };
+
+      // Adicionar cabeçalho na primeira página
+      yPosition = addHeader();
 
       // Títulos
-      addText('GRANDE ORIENTE DO BRASIL', 11, true, 'center');
-      yPosition += 1;
-      addText('ORIENTE DE CRATO-CE', 10, true, 'center');
-      yPosition += 1;
-      addText(`LIVRO DO ${ataData.livro} MAÇOM`, 10, true, 'center');
-      yPosition += 2;
-      addText(`ATA ${ataData.numeroAta}`, 10, true, 'center');
-      yPosition += 1;
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('GRANDE ORIENTE DO BRASIL', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 6;
+
+      pdf.setFontSize(10);
+      pdf.text('ORIENTE DE CRATO-CE', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
+
+      pdf.text(`LIVRO DO ${ata.livro} MAÇOM`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 7;
+
+      pdf.text(`ATA ${ata.numeroAta}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 5;
 
       // Linha horizontal
       pdf.setLineWidth(0.5);
       pdf.line(margin, yPosition, pageWidth - margin, yPosition);
       yPosition += 5;
 
-      addText(`ATA SESSÃO MAGNA DE ${ataData.livro}`, 10, true, 'center');
+      pdf.text(`ATA SESSÃO MAGNA DE ${ata.livro}`, pageWidth / 2, yPosition, { align: 'center' });
       yPosition += 8;
 
-      // Build ata text
+      // Construir o texto completo da ata
       const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
         'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
-      const dataAta = new Date(ataData.data);
+      const dataAta = new Date(ata.data);
       const dia = dataAta.getDate();
       const mes = meses[dataAta.getMonth()];
       const ano = dataAta.getFullYear();
 
       const numerosExtenso = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez',
         'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove', 'vinte',
-        'vinte e um', 'vinte e dois', 'vinte e três', 'vinte e quatro', 'vinte e cinco', 'vinte e seis',
-        'vinte e sete', 'vinte e oito', 'vinte e nove', 'trinta', 'trinta e um'];
+        'vinte e um', 'vinte e dois', 'vinte e três', 'vinte e quatro', 'vinte e cinco'];
 
-      const formatarNome = (cargo) => {
+      const visitantes = ata.presencas.filter(p => p.tipo === 'VISITANTE').length;
+      const quadro = ata.numeroPresentes - visitantes;
+
+      const presencaTexto = visitantes > 0
+        ? `${quadro} (${numerosExtenso[quadro] || quadro}) do quadro da Loja e ${visitantes} (${numerosExtenso[visitantes] || visitantes}) visitantes`
+        : 'todos do quadro da Loja';
+
+      const cargosTexto = ata.cargos.map(cargo => {
         const nome = cargo.membro ? cargo.membro.nome : cargo.nomeManual;
-        return `Ir. ${nome.toUpperCase()}`;
-      };
+        return `${cargo.cargo}: Ir. ${nome.toUpperCase()}`;
+      }).join(', ');
 
-      const formatarNomePresenca = (presenca) => {
-        const nome = presenca.membro ? presenca.membro.nome : presenca.nomeManual;
-        return `Ir. ${nome.toUpperCase()}`;
-      };
+      const membrosQuadroTexto = ata.presencas
+        .filter(p => p.tipo === 'QUADRO')
+        .map(p => {
+          const nome = p.membro ? p.membro.nome : p.nomeManual;
+          return `Ir. ${nome.toUpperCase()}`;
+        })
+        .join(', ');
 
-      const visitantes = ataData.presencas.filter(p => p.tipo === 'VISITANTE').length;
-      const quadro = ataData.numeroPresentes - visitantes;
+      const visitantesTexto = ata.presencas
+        .filter(p => p.tipo === 'VISITANTE')
+        .map(p => {
+          const nome = p.membro ? p.membro.nome : p.nomeManual;
+          return `Ir. ${nome.toUpperCase()}`;
+        })
+        .join(', ');
 
-      let textoCorpo = `Ata ${ataData.numeroAta} da sessão ordinária no grau de ${ataData.livro} Maçom do Rito Schröder, da A∴R∴L∴S∴ Sabedoria de Salomão nº 4.774, realizada na Rua Virgílio Arrais, bairro Grangeiro, Crato–CE, aos ${dia} (${numerosExtenso[dia]}) dias do mês de ${mes} de ${ano} da Era Vulgar. Os trabalhos foram iniciados às ${ataData.horarioInicio} hs, com a presença de ${ataData.numeroPresentes} (${numerosExtenso[ataData.numeroPresentes] || ataData.numeroPresentes}) Irmãos, sendo `;
+      const venaveMestre = ata.cargos.find(c => c.cargo === 'Venerável Mestre');
+      const secretario = ata.cargos.find(c => c.cargo === 'Secretário');
+      const orador = ata.cargos.find(c => c.cargo === 'Orador');
 
-      if (visitantes > 0) {
-        textoCorpo += `${quadro} (${numerosExtenso[quadro] || quadro}) do quadro da Loja e ${visitantes} (${numerosExtenso[visitantes] || visitantes}) visitantes. `;
-      } else {
-        textoCorpo += 'todos do quadro da Loja. ';
+      const nomeVM = venaveMestre ? (venaveMestre.membro?.nome || venaveMestre.nomeManual) : '';
+      const nomeSec = secretario ? (secretario.membro?.nome || secretario.nomeManual) : '';
+      const nomeOrador = orador ? (orador.membro?.nome || orador.nomeManual) : '';
+
+      let textoCorpo = `Ata ${ata.numeroAta} da sessão ordinária no grau de ${ata.livro} Maçom do Rito Schröder, da A.R.L.S. Sabedoria de Salomão nº 4.774, realizada na Rua Virgílio Arrais, bairro Grangeiro, Crato–CE, aos ${dia} (${numerosExtenso[dia]}) dias do mês de ${mes} de ${ano} da Era Vulgar. Os trabalhos foram iniciados às ${ata.horarioInicio} hs, com a presença de ${ata.numeroPresentes} (${numerosExtenso[ata.numeroPresentes] || ata.numeroPresentes}) Irmãos, sendo ${presencaTexto}. Os cargos foram ocupados na seguinte ordem: ${cargosTexto}. `;
+
+      if (membrosQuadroTexto) {
+        textoCorpo += `Estiveram também presentes os Irmãos membros do quadro da loja: ${membrosQuadroTexto}. `;
       }
 
-      textoCorpo += 'Os cargos foram ocupados na seguinte ordem: ';
-      textoCorpo += ataData.cargos.map(cargo => `${cargo.cargo}: ${formatarNome(cargo)}`).join(', ') + '. ';
-
-      if (ataData.presencas.filter(p => p.tipo === 'QUADRO').length > 0) {
-        textoCorpo += 'Estiveram também presentes os Irmãos membros do quadro da loja: ';
-        textoCorpo += ataData.presencas.filter(p => p.tipo === 'QUADRO').map(p => formatarNomePresenca(p)).join(', ') + '. ';
+      if (visitantesTexto) {
+        textoCorpo += `Estiveram também presentes os seguintes visitantes: ${visitantesTexto}. `;
       }
 
-      if (visitantes > 0) {
-        textoCorpo += 'Estiveram também presentes os seguintes visitantes: ';
-        textoCorpo += ataData.presencas.filter(p => p.tipo === 'VISITANTE').map(p => formatarNomePresenca(p)).join(', ') + '. ';
+      textoCorpo += `Após a abertura dos trabalhos, o Venerável Mestre Ir. ${nomeVM.toUpperCase()} saudou cordialmente a todos os presentes.`;
+
+      if (ata.leituraAta) {
+        textoCorpo += ` LEITURA DE ATA: ${ata.leituraAta}`;
       }
 
-      const veneravel = ataData.cargos.find(c => c.cargo === 'Venerável Mestre');
-      if (veneravel) {
-        textoCorpo += `Após a abertura dos trabalhos, o Venerável Mestre ${formatarNome(veneravel)} saudou cordialmente a todos os presentes. `;
+      if (ata.expediente) {
+        textoCorpo += ` EXPEDIENTE: ${ata.expediente}`;
       }
 
-      if (ataData.leituraAta) {
-        textoCorpo += `LEITURA DE ATA: ${ataData.leituraAta} `;
+      if (ata.ordemDia) {
+        textoCorpo += ` ORDEM DO DIA: ${ata.ordemDia}`;
       }
 
-      if (ataData.expediente) {
-        textoCorpo += `EXPEDIENTE: ${ataData.expediente} `;
+      if (ata.coberturaTemplo) {
+        textoCorpo += ` PEDIDOS DE COBERTURA DO TEMPLO DEFINITIVO: ${ata.coberturaTemplo}`;
       }
 
-      if (ataData.ordemDia) {
-        textoCorpo += `ORDEM DO DIA: ${ataData.ordemDia} `;
+      if (ata.palavraBemLoja) {
+        textoCorpo += ` PALAVRA A BEM DESTA LOJA OU DA MAÇONARIA EM GERAL: ${ata.palavraBemLoja}`;
       }
 
-      if (ataData.coberturaTemplo) {
-        textoCorpo += `PEDIDOS DE COBERTURA DO TEMPLO DEFINITIVO: ${ataData.coberturaTemplo} `;
-      }
+      const valorFormatado = Number(ata.valorTronco).toFixed(2).replace('.', ',');
+      const reais = Number(ata.valorTronco).toFixed(2).split('.')[0];
+      const centavos = Number(ata.valorTronco).toFixed(2).split('.')[1];
+      const valorExtenso = centavos !== '00' ? `${reais} reais e ${centavos} centavos` : `${reais} reais`;
 
-      if (ataData.palavraBemLoja) {
-        textoCorpo += `PALAVRA A BEM DESTA LOJA OU DA MAÇONARIA EM GERAL: ${ataData.palavraBemLoja} `;
-      }
+      textoCorpo += ` TRONCO DE BENEFICÊNCIA: Após o giro da esmoleira, o resultado da coleta foi de R$ ${valorFormatado} (${valorExtenso}). Os trabalhos foram encerrados às ${ata.horarioEncerramento} hs e nada mais havendo a tratar eu, Ir. ${nomeSec.toUpperCase()}, Secretário AD HOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.`;
 
-      const valorFormatado = Number(ataData.valorTronco).toFixed(2).replace('.', ',');
-      const reais = Number(ataData.valorTronco).toFixed(2).split('.')[0];
-      const centavos = Number(ataData.valorTronco).toFixed(2).split('.')[1];
-
-      textoCorpo += `TRONCO DE BENEFICÊNCIA: Após o giro da esmoleira, o resultado da coleta foi de R$ ${valorFormatado} (${reais} reais${centavos !== '00' ? ` e ${centavos} centavos` : ''}). `;
-
-      const secretario = ataData.cargos.find(c => c.cargo === 'Secretário');
-      textoCorpo += `Os trabalhos foram encerrados às ${ataData.horarioEncerramento} hs e nada mais havendo a tratar eu, ${secretario ? formatarNome(secretario) : ''}, Secretário AD HOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.`;
-
-      // Body text (justified)
+      // Corpo justificado
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
       const bodyLines = pdf.splitTextToSize(textoCorpo, maxWidth);
 
-      bodyLines.forEach((line) => {
-        if (yPosition > pageHeight - margin - 50) {
+      bodyLines.forEach((line, index) => {
+        if (yPosition > pageHeight - margin - 2) {
           pdf.addPage();
-          yPosition = margin;
+          yPosition = addHeader();
         }
-        pdf.text(line, margin, yPosition);
+
+        // Justificar texto (exceto última linha e linhas curtas)
+        const isLastLine = index === bodyLines.length - 1;
+        const trimmedLine = line.trim();
+
+        if (!isLastLine && trimmedLine.length > 0) {
+          const words = trimmedLine.split(/\s+/);
+          if (words.length > 1 && words.filter(w => w.length > 0).length > 1) {
+            const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
+            const totalSpaceNeeded = maxWidth - totalTextWidth;
+            const spacePerGap = totalSpaceNeeded / (words.length - 1);
+
+            let xPos = margin;
+            words.forEach((word, i) => {
+              if (word.length > 0) {
+                pdf.text(word, xPos, yPosition);
+                if (i < words.length - 1) {
+                  xPos += pdf.getTextWidth(word) + spacePerGap;
+                }
+              }
+            });
+          } else {
+            pdf.text(trimmedLine, margin, yPosition);
+          }
+        } else {
+          pdf.text(trimmedLine, margin, yPosition);
+        }
+
         yPosition += 5.5;
       });
 
-      // Signatures
+      // Assinaturas
       yPosition += 20;
-      if (yPosition > pageHeight - margin - 40) {
+      if (yPosition > pageHeight - 30) {
         pdf.addPage();
-        yPosition = margin;
+        yPosition = addHeader();
       }
 
       const signatureY = yPosition;
-      const signatureSpacing = 60;
-
-      // Venerável Mestre
-      pdf.line(margin, signatureY, margin + 50, signatureY);
-      pdf.setFontSize(9);
+      pdf.setFontSize(10);
       pdf.setFont('helvetica', 'bold');
-      if (veneravel) {
-        const nomeVM = veneravel.membro?.nome || veneravel.nomeManual;
-        pdf.text(nomeVM.toUpperCase(), margin + 25, signatureY + 5, { align: 'center' });
-      }
-      pdf.setFont('helvetica', 'normal');
-      pdf.text('Venerável Mestre', margin + 25, signatureY + 10, { align: 'center' });
 
-      // Secretário
-      const secX = margin + signatureSpacing;
-      pdf.line(secX, signatureY, secX + 50, signatureY);
+      // Calcular posições para 3 assinaturas distribuídas
+      const signatureWidth = 50;
+      const totalSignaturesWidth = signatureWidth * 3;
+      const spacing = (maxWidth - totalSignaturesWidth) / 4;
+
+      const pos1 = margin + spacing;
+      const pos2 = pos1 + signatureWidth + spacing;
+      const pos3 = pos2 + signatureWidth + spacing;
+
+      // Linha para assinatura VM
+      pdf.line(pos1, signatureY, pos1 + signatureWidth, signatureY);
+      pdf.text(nomeVM.toUpperCase(), pos1 + signatureWidth/2, signatureY + 5, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      pdf.text('Venerável Mestre', pos1 + signatureWidth/2, signatureY + 10, { align: 'center' });
+
+      // Linha para assinatura Secretário
       pdf.setFont('helvetica', 'bold');
-      if (secretario) {
-        const nomeSec = secretario.membro?.nome || secretario.nomeManual;
-        pdf.text(nomeSec.toUpperCase(), secX + 25, signatureY + 5, { align: 'center' });
-      }
+      pdf.line(pos2, signatureY, pos2 + signatureWidth, signatureY);
+      pdf.text(nomeSec.toUpperCase(), pos2 + signatureWidth/2, signatureY + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Secretário', secX + 25, signatureY + 10, { align: 'center' });
+      pdf.text('Secretário', pos2 + signatureWidth/2, signatureY + 10, { align: 'center' });
 
-      // Orador
-      const oradorX = margin + (signatureSpacing * 2);
-      const orador = ataData.cargos.find(c => c.cargo === 'Orador');
-      pdf.line(oradorX, signatureY, oradorX + 50, signatureY);
+      // Linha para assinatura Orador
       pdf.setFont('helvetica', 'bold');
-      if (orador) {
-        const nomeOrador = orador.membro?.nome || orador.nomeManual;
-        pdf.text(nomeOrador.toUpperCase(), oradorX + 25, signatureY + 5, { align: 'center' });
-      }
+      pdf.line(pos3, signatureY, pos3 + signatureWidth, signatureY);
+      pdf.text(nomeOrador.toUpperCase(), pos3 + signatureWidth/2, signatureY + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Orador', oradorX + 25, signatureY + 10, { align: 'center' });
+      pdf.text('Orador', pos3 + signatureWidth/2, signatureY + 10, { align: 'center' });
 
-      pdf.save(`Ata_${ataData.numeroAta.replace('/', '_')}.pdf`);
+      pdf.save(`Ata_${ata.numeroAta.replace('/', '_')}.pdf`);
 
       // Fecha a janela ou volta para a página anterior
       setTimeout(() => {

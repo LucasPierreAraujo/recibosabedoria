@@ -333,36 +333,36 @@ export default function VisualizarAtaPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header com botões */}
-      <header className="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
+      <header className="bg-blue-900 text-white p-3 md:p-4 shadow-lg sticky top-0 z-50">
+        <div className="w-full flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
             <button
               onClick={() => router.push('/atas')}
-              className="hover:bg-blue-800 p-2 rounded flex items-center gap-2"
+              className="hover:bg-blue-800 p-2 rounded flex items-center gap-1 md:gap-2"
             >
-              <ArrowLeft size={24} />
-              <span>Voltar</span>
+              <ArrowLeft size={20} className="md:w-6 md:h-6" />
+              <span className="text-sm md:text-base">Voltar</span>
             </button>
-            <div>
-              <h1 className="text-2xl font-bold">Visualizar Ata</h1>
-              <p className="text-sm text-blue-200">Ata {ata.numeroAta}</p>
+            <div className="flex-1">
+              <h1 className="text-lg md:text-2xl font-bold">Visualizar Ata</h1>
+              <p className="text-xs md:text-sm text-blue-200">Ata {ata.numeroAta}</p>
             </div>
           </div>
           <button
             onClick={gerarPDF}
             disabled={gerando}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg disabled:opacity-50"
+            className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 px-3 md:px-4 py-2 rounded-lg disabled:opacity-50 w-full md:w-auto text-sm md:text-base"
           >
-            <Download size={20} />
+            <Download size={18} className="md:w-5 md:h-5" />
             {gerando ? 'Gerando PDF...' : 'Baixar PDF'}
           </button>
         </div>
       </header>
 
       {/* Conteúdo da Ata */}
-      <main className="max-w-7xl mx-auto p-4 md:p-8">
-        <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
-          <div id="ata-completa" className="bg-white p-8" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto' }}>
+      <main className="w-full p-2 md:p-8">
+        <div className="bg-white shadow-2xl rounded-lg overflow-x-auto">
+          <div id="ata-completa" className="bg-white p-4 md:p-8 min-w-[210mm]" style={{ width: '210mm', minHeight: '297mm', margin: '0 auto' }}>
 
             {/* Cabeçalho com logos - será repetido em todas as páginas */}
             <div id="ata-cabecalho" className="mb-6">
