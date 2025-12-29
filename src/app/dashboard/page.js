@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Users, LogOut } from 'lucide-react';
+import { FileText, Users, LogOut, BookOpen, DollarSign } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -69,6 +69,7 @@ export default function DashboardPage() {
               Adicione, edite ou remova membros do cadastro da loja
             </p>
           </div>
+
           {/* Card Financeiro */}
           <div
             onClick={() => router.push('/financeiro')}
@@ -76,12 +77,28 @@ export default function DashboardPage() {
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="bg-yellow-100 p-4 rounded-full">
-                <FileText size={32} className="text-yellow-600" />
+                <DollarSign size={32} className="text-yellow-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-800">Gestão Financeira</h3>
             </div>
             <p className="text-gray-600">
               Controle de mensalidades, receitas e despesas da loja
+            </p>
+          </div>
+
+          {/* Card Atas */}
+          <div
+            onClick={() => router.push('/atas')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-purple-600"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-purple-100 p-4 rounded-full">
+                <BookOpen size={32} className="text-purple-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Atas de Sessões</h3>
+            </div>
+            <p className="text-gray-600">
+              Gere e gerencie atas das sessões maçônicas da loja
             </p>
           </div>
         </div>

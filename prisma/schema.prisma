@@ -27,21 +27,23 @@ model Membro {
   nome             String
   grau             String
   status           String
-  
+
   cim              String?
   cargo            String?
   assinaturaUrl    String?
-  
+
   dataIniciacao    String?
   dataFiliacao     String?
   dataPassagemGrau String?
   dataElevacao     String?
   dataInstalacao   String?
-  
+
   dataCadastro     DateTime               @default(now())
-  
+
   pagamentos       PagamentoMensalidade[]
-  
+  atasCargos       AtaCargo[]
+  atasPresencas    AtaPresenca[]
+
   @@map("membros")
 }
 
@@ -146,3 +148,69 @@ model DoacaoFilantropica {
 
   @@map("doacoes_filantropicas")
 }
+
+// Adicione estes modelos ao seu schema.prisma existente
+// IMPORTANTE: Os modelos AtaCargo e AtaPresenca têm campo nomeManual para aceitar digitação manual
+
+model Ata {
+  id                    String   @id @default(cuid())
+  numeroAta             String   @unique // ex: "33/2025"
+  livro                 String   // "APRENDIZ", "COMPANHEIRO", "MESTRE"
+  data                  DateTime
+  horarioInicio         String   // ex: "19:45"
+  horarioEncerramento   String   // ex: "22:20"
+  numeroPresentes       Int
+  valorTronco           Decimal  @db.Decimal(10, 2)
+  
+  // Conteúdo da ata em formato texto
+  leituraAta            String?  @db.Text
+  expediente            String?  @db.Text
+  ordemDia              String?  @db.Text
+  coberturaTemplo       String?  @db.Text
+  palavraBemLoja        String?  @db.Text
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  cargos                AtaCargo[]
+  presencas             AtaPresenca[]
+  
+  @@map("atas")
+}
+
+model AtaCargo {
+  id          String  @id @default(cuid())
+  ataId       String
+  ata         Ata     @relation(fields: [ataId], references: [id], onDelete: Cascade)
+  
+  cargo       String  // ex: "Venerável Mestre", "1° Vigilante"
+  
+  // Pode ser um membro cadastrado OU um nome digitado manualmente
+  membroId    String?
+  membro      Membro? @relation(fields: [membroId], references: [id])
+  nomeManual  String? // Nome digitado manualmente (se não for membro cadastrado)
+  
+  @@map("atas_cargos")
+}
+
+model AtaPresenca {
+  id          String  @id @default(cuid())
+  ataId       String
+  ata         Ata     @relation(fields: [ataId], references: [id], onDelete: Cascade)
+  
+  // Pode ser um membro cadastrado OU um nome digitado manualmente
+  membroId    String?
+  membro      Membro? @relation(fields: [membroId], references: [id])
+  nomeManual  String? // Nome digitado manualmente (se não for membro cadastrado)
+  
+  tipo        String  // "QUADRO" ou "VISITANTE"
+  
+  @@map("atas_presencas")
+}
+
+// Adicione estas relações ao modelo Membro existente:
+// model Membro {
+//   ...
+//   atasCargos    AtaCargo[]
+//   atasPresencas AtaPresenca[]
+// }
