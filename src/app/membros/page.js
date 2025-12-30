@@ -25,7 +25,7 @@ export default function MembrosPage() {
     dataInstalacao: '' // <--- CAMPO ADICIONADO NO ESTADO
   });
 
-  const graus = ['CANDIDATO', 'APRENDIZ', 'COMPANHEIRO', 'MESTRE'];
+  const graus = ['CANDIDATO', 'APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'];
   const statusOptions = ['ATIVO', 'INATIVO'];
   const cargos = [
     '',
@@ -65,9 +65,15 @@ export default function MembrosPage() {
 
   // ================== VALIDAÇÃO ==================
   const validarCampos = () => {
-    const { grau, cim, dataIniciacao, dataFiliacao, dataPassagemGrau, dataElevacao } = formData;
-    
-    if (grau === 'MESTRE') {
+    const { grau, cim, dataIniciacao, dataFiliacao, dataPassagemGrau, dataElevacao, dataInstalacao } = formData;
+
+    if (grau === 'MESTRE INSTALADO') {
+      if (!cim) { alert('CIM é obrigatório para Mestre Instalado'); return false; }
+      if (!dataIniciacao && !dataFiliacao) { alert('Data de Iniciação ou Filiação é obrigatória para Mestre Instalado'); return false; }
+      if (!dataPassagemGrau) { alert('Data de Passagem de Grau é obrigatória para Mestre Instalado'); return false; }
+      if (!dataElevacao) { alert('Data de Elevação é obrigatória para Mestre Instalado'); return false; }
+      if (!dataInstalacao) { alert('Data de Instalação é obrigatória para Mestre Instalado'); return false; }
+    } else if (grau === 'MESTRE') {
       if (!cim) { alert('CIM é obrigatório para Mestre'); return false; }
       if (!dataIniciacao && !dataFiliacao) { alert('Data de Iniciação ou Filiação é obrigatória para Mestre'); return false; }
       if (!dataPassagemGrau) { alert('Data de Passagem de Grau é obrigatória para Mestre'); return false; }
@@ -244,14 +250,14 @@ export default function MembrosPage() {
   };
 
   // ================== CAMPOS CONDICIONAIS ==================
-  const mostrarCIM = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'].includes(formData.grau);
-  const mostrarDataIniciacao = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'].includes(formData.grau);
-  const mostrarDataFiliacao = formData.grau === 'MESTRE';
-  const mostrarDataPassagemGrau = ['COMPANHEIRO', 'MESTRE'].includes(formData.grau);
-  const mostrarDataElevacao = formData.grau === 'MESTRE';
-  const mostrarCargo = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'].includes(formData.grau);
-  // Mostrar Data de Instalação se houver um Cargo selecionado
-  const mostrarDataInstalacao = formData.cargo && formData.cargo !== ''; 
+  const mostrarCIM = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  const mostrarDataIniciacao = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  const mostrarDataFiliacao = ['MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  const mostrarDataPassagemGrau = ['COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  const mostrarDataElevacao = ['MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  const mostrarCargo = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(formData.grau);
+  // Mostrar Data de Instalação se grau for MESTRE INSTALADO
+  const mostrarDataInstalacao = formData.grau === 'MESTRE INSTALADO'; 
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -403,12 +409,13 @@ export default function MembrosPage() {
                   )}
                   {mostrarDataInstalacao && ( // <--- CAMPO ADICIONADO NO FORM
                     <div>
-                      <label className="block text-sm font-bold mb-1 text-gray-700">Data de Instalação</label>
+                      <label className="block text-sm font-bold mb-1 text-gray-700">Data de Instalação *</label>
                       <input
                         type="date"
                         value={formData.dataInstalacao}
                         onChange={(e) => setFormData({ ...formData, dataInstalacao: e.target.value })}
                         className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-800"
+                        required={mostrarDataInstalacao}
                       />
                     </div>
                   )}

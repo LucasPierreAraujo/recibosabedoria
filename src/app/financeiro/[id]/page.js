@@ -743,9 +743,9 @@ export default function DetalhePlanilhaPage() {
               <table className="w-full border-2 border-gray-300 text-sm">
                 <thead className="bg-red-100 text-gray-900">
                   <tr>
-                    <th className="border px-2 py-1 text-left">Categoria</th>
                     <th className="border px-2 py-1 text-left">Descrição</th>
-                    <th className="border px-2 py-1 text-center">Tipo</th>
+                    <th className="border px-2 py-1 text-left">Data de Pagamento</th>
+                    <th className="border px-2 py-1 text-center">Tipo de Gasto</th>
                     <th className="border px-2 py-1 text-right">Valor</th>
                     <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
@@ -753,8 +753,8 @@ export default function DetalhePlanilhaPage() {
                 <tbody>
                   {planilha.despesas.map(despesa => (
                     <tr key={despesa.id}>
-                      <td className="border text-gray-900 px-2 py-1 text-xs">{despesa.categoria}</td>
                       <td className="border text-gray-900 px-2 py-1">{despesa.descricao}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(despesa.data).toLocaleDateString('pt-BR')}</td>
                       <td className="border text-gray-900 px-2 py-1 text-center text-xs font-semibold">{despesa.tipoGasto}</td>
                       <td className="border px-2 py-1 text-right text-red-600 font-bold">
                         R$ {Number(despesa.valor).toFixed(2)}
@@ -779,7 +779,8 @@ export default function DetalhePlanilhaPage() {
                 <thead className="bg-yellow-100 text-gray-900">
                   <tr>
                     <th className="border px-2 py-1 text-left">Grau da Sessão</th>
-                    <th className="border px-2 py-1 text-left">Data</th>
+                    <th className="border px-2 py-1 text-left">Data da Sessão</th>
+                    <th className="border px-2 py-1 text-left">Data do Depósito</th>
                     <th className="border px-2 py-1 text-right">Valor</th>
                     <th className="border px-2 py-1 text-center print:hidden">Ação</th>
                   </tr>
@@ -788,7 +789,8 @@ export default function DetalhePlanilhaPage() {
                   {planilha.troncos.map(tronco => (
                     <tr key={tronco.id}>
                       <td className="border text-gray-900 px-2 py-1">{tronco.grauSessao}</td>
-                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(tronco.data).toLocaleDateString()}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(tronco.data).toLocaleDateString('pt-BR')}</td>
+                      <td className="border text-gray-900 px-2 py-1 text-xs">{new Date(tronco.dataDeposito).toLocaleDateString('pt-BR')}</td>
                       <td className="border px-2 py-1 text-right text-green-600 font-bold">
                         R$ {Number(tronco.valor).toFixed(2)}
                       </td>
