@@ -414,7 +414,7 @@ export default function DetalhePlanilhaPage() {
 
   const exportarPDF = async () => {
     const elemento = document.getElementById('planilha-completa');
-    
+
      try {
       const canvas = await html2canvas(elemento, {
         scale: 2,
@@ -432,18 +432,20 @@ export default function DetalhePlanilhaPage() {
 
       const imgWidth = 210;
       const pageHeight = 297;
+      const marginBottom = 15; // Margem inferior de 15mm
+      const usablePageHeight = pageHeight - marginBottom; // Altura útil da página
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
 
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      heightLeft -= usablePageHeight;
 
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        heightLeft -= usablePageHeight;
       }
 
       pdf.save(`planilha_${meses[planilha.mes - 1]}_${planilha.ano}.pdf`);
