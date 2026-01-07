@@ -123,7 +123,7 @@ export default function VisualizarAtaPage() {
       yPosition += 5;
 
       pdf.text(`ATA SESSÃO MAGNA DE ${ata.livro}`, pageWidth / 2, yPosition, { align: 'center' });
-      yPosition += 8;
+      yPosition += 12;
 
       // Construir o texto completo da ata
       const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -145,9 +145,25 @@ export default function VisualizarAtaPage() {
         ? `${quadro} (${numerosExtenso[quadro] || quadro}) do quadro da Loja e ${visitantes} (${numerosExtenso[visitantes] || visitantes}) visitantes`
         : 'todos do quadro da Loja';
 
-      const cargosTexto = ata.cargos.map(cargo => {
+      // Agrupar cargos por membro (evitar repetir o nome)
+      const cargosPorMembro = {};
+      ata.cargos.forEach(cargo => {
         const nome = cargo.membro ? cargo.membro.nome : cargo.nomeManual;
-        return `${cargo.cargo}: Ir. ${nome.toUpperCase()}`;
+        if (!cargosPorMembro[nome]) {
+          cargosPorMembro[nome] = [];
+        }
+        cargosPorMembro[nome].push(cargo.cargo);
+      });
+
+      const cargosTexto = Object.entries(cargosPorMembro).map(([nome, cargos]) => {
+        // Ordenar: "Membro do Ministério Público" sempre por último
+        const cargosOrdenados = cargos.sort((a, b) => {
+          if (a === 'Membro do Ministério Público') return 1;
+          if (b === 'Membro do Ministério Público') return -1;
+          return 0;
+        });
+        const cargosUnidos = cargosOrdenados.join(' / ');
+        return `<B>${cargosUnidos}:</B> Ir. ${nome.toUpperCase()}`;
       }).join(', ');
 
       const membrosQuadroTexto = ata.presencas
@@ -174,7 +190,30 @@ export default function VisualizarAtaPage() {
       const nomeSec = secretario ? (secretario.membro?.nome || secretario.nomeManual) : '';
       const nomeOrador = orador ? (orador.membro?.nome || orador.nomeManual) : '';
 
-      let textoCorpo = `Ata ${ata.numeroAta} da sessão ordinária no grau de ${ata.livro} Maçom do Rito Schröder, da A.R.L.S. Sabedoria de Salomão nº 4.774, realizada na Rua Virgílio Arrais, bairro Grangeiro, Crato–CE, aos ${dia} (${numerosExtenso[dia]}) dias do mês de ${mes} de ${ano} da Era Vulgar. Os trabalhos foram iniciados às ${ata.horarioInicio} hs, com a presença de ${ata.numeroPresentes} (${numerosExtenso[ata.numeroPresentes] || ata.numeroPresentes}) Irmãos, sendo ${presencaTexto}. Os cargos foram ocupados na seguinte ordem: ${cargosTexto}. `;
+      // Função para obter todos os cargos de um membro
+      const obterCargosDoMembro = (membroNome) => {
+        const cargos = ata.cargos
+          .filter(c => {
+            const nome = c.membro?.nome || c.nomeManual;
+            return nome === membroNome;
+          })
+          .map(c => c.cargo);
+
+        // Ordenar: "Membro do Ministério Público" sempre por último
+        const cargosOrdenados = cargos.sort((a, b) => {
+          if (a === 'Membro do Ministério Público') return 1;
+          if (b === 'Membro do Ministério Público') return -1;
+          return 0;
+        });
+
+        return cargosOrdenados.join(' / ');
+      };
+
+      const cargosVM = obterCargosDoMembro(nomeVM);
+      const cargosSec = obterCargosDoMembro(nomeSec);
+      const cargosOrador = obterCargosDoMembro(nomeOrador);
+
+      let textoCorpo = `<B>Ata</B> <B>${ata.numeroAta}</B> da sessão ordinária no grau de ${ata.livro} Maçom do Rito Schröder, da <B>A.R.L.S.</B> <B>Sabedoria</B> <B>de</B> <B>Salomão</B> <B>nº</B> <B>4.774,</B> realizada na Rua Virgílio Arrais, bairro Grangeiro, Crato–CE, aos ${dia} (${numerosExtenso[dia]}) dias do mês de ${mes} de ${ano} da Era Vulgar. Os trabalhos foram iniciados às ${ata.horarioInicio} hs, com a presença de ${ata.numeroPresentes} (${numerosExtenso[ata.numeroPresentes] || ata.numeroPresentes}) Irmãos, sendo ${presencaTexto}. Os cargos foram ocupados na seguinte ordem: ${cargosTexto}. `;
 
       if (membrosQuadroTexto) {
         textoCorpo += `Estiveram também presentes os Irmãos membros do quadro da loja: ${membrosQuadroTexto}. `;
@@ -187,75 +226,158 @@ export default function VisualizarAtaPage() {
       textoCorpo += `Após a abertura dos trabalhos, o Venerável Mestre Ir. ${nomeVM.toUpperCase()} saudou cordialmente a todos os presentes.`;
 
       if (ata.leituraAta) {
-        textoCorpo += ` LEITURA DE ATA: ${ata.leituraAta}`;
+        textoCorpo += ` <B>LEITURA</B> <B>DE</B> <B>ATA:</B> ${ata.leituraAta}`;
       }
 
       if (ata.expediente) {
-        textoCorpo += ` EXPEDIENTE: ${ata.expediente}`;
+        textoCorpo += ` <B>EXPEDIENTE:</B> ${ata.expediente}`;
       }
 
       if (ata.ordemDia) {
-        textoCorpo += ` ORDEM DO DIA: ${ata.ordemDia}`;
+        textoCorpo += ` <B>ORDEM</B> <B>DO</B> <B>DIA:</B> ${ata.ordemDia}`;
       }
 
       if (ata.coberturaTemplo) {
-        textoCorpo += ` PEDIDOS DE COBERTURA DO TEMPLO DEFINITIVO: ${ata.coberturaTemplo}`;
+        textoCorpo += ` <B>PEDIDOS</B> <B>DE</B> <B>COBERTURA</B> <B>DO</B> <B>TEMPLO</B> <B>DEFINITIVO:</B> ${ata.coberturaTemplo}`;
       }
 
       if (ata.palavraBemLoja) {
-        textoCorpo += ` PALAVRA A BEM DESTA LOJA OU DA MAÇONARIA EM GERAL: ${ata.palavraBemLoja}`;
+        textoCorpo += ` <B>PALAVRA</B> <B>A</B> <B>BEM</B> <B>DESTA</B> <B>LOJA</B> <B>OU</B> <B>DA</B> <B>MAÇONARIA</B> <B>EM</B> <B>GERAL:</B> ${ata.palavraBemLoja}`;
       }
 
+      // Função para converter número em extenso
+      const numeroParaExtenso = (numero) => {
+        const unidades = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+        const dez_vinte = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+        const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+        const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+        const num = parseInt(numero);
+
+        if (num === 0) return 'zero';
+        if (num < 10) return unidades[num];
+        if (num >= 10 && num < 20) return dez_vinte[num - 10];
+        if (num >= 20 && num < 100) {
+          const dez = Math.floor(num / 10);
+          const uni = num % 10;
+          return uni === 0 ? dezenas[dez] : `${dezenas[dez]} e ${unidades[uni]}`;
+        }
+        if (num === 100) return 'cem';
+        if (num > 100 && num < 1000) {
+          const cen = Math.floor(num / 100);
+          const resto = num % 100;
+          if (resto === 0) return centenas[cen];
+          if (resto < 10) return `${centenas[cen]} e ${unidades[resto]}`;
+          if (resto < 20) return `${centenas[cen]} e ${dez_vinte[resto - 10]}`;
+          const dez = Math.floor(resto / 10);
+          const uni = resto % 10;
+          return uni === 0 ? `${centenas[cen]} e ${dezenas[dez]}` : `${centenas[cen]} e ${dezenas[dez]} e ${unidades[uni]}`;
+        }
+        return numero.toString();
+      };
+
       const valorFormatado = Number(ata.valorTronco).toFixed(2).replace('.', ',');
-      const reais = Number(ata.valorTronco).toFixed(2).split('.')[0];
-      const centavos = Number(ata.valorTronco).toFixed(2).split('.')[1];
-      const valorExtenso = centavos !== '00' ? `${reais} reais e ${centavos} centavos` : `${reais} reais`;
+      const reais = parseInt(Number(ata.valorTronco).toFixed(2).split('.')[0]);
+      const centavos = parseInt(Number(ata.valorTronco).toFixed(2).split('.')[1]);
 
-      textoCorpo += ` TRONCO DE BENEFICÊNCIA: Após o giro da esmoleira, o resultado da coleta foi de R$ ${valorFormatado} (${valorExtenso}). Os trabalhos foram encerrados às ${ata.horarioEncerramento} hs e nada mais havendo a tratar eu, Ir. ${nomeSec.toUpperCase()}, Secretário AD HOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.`;
+      const reaisExtenso = numeroParaExtenso(reais);
+      const centavosExtenso = numeroParaExtenso(centavos);
 
-      // Corpo justificado
+      const valorExtenso = centavos !== 0
+        ? `${reaisExtenso} ${reais === 1 ? 'real' : 'reais'} e ${centavosExtenso} ${centavos === 1 ? 'centavo' : 'centavos'}`
+        : `${reaisExtenso} ${reais === 1 ? 'real' : 'reais'}`;
+
+      textoCorpo += ` <B>TRONCO</B> <B>DE</B> <B>BENEFICÊNCIA:</B> Após o giro da esmoleira, o resultado da coleta foi de R$ ${valorFormatado} (${valorExtenso}). Os trabalhos foram encerrados às ${ata.horarioEncerramento} hs e nada mais havendo a tratar eu, Ir. ${nomeSec.toUpperCase()}, Secretário ADHOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.`;
+
+      // Renderizar texto COM negrito - processar palavra por palavra
       pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
-      const bodyLines = pdf.splitTextToSize(textoCorpo, maxWidth);
 
-      bodyLines.forEach((line, index) => {
+      // Dividir em palavras mantendo os marcadores
+      const words = textoCorpo.split(/\s+/);
+      let currentLine = [];
+      let currentLineWidth = 0;
+      let isBold = false;
+
+      const renderLine = (words, justify = true) => {
         if (yPosition > pageHeight - margin - 2) {
           pdf.addPage();
           yPosition = addHeader();
+          pdf.setFontSize(11);
+          pdf.setFont('helvetica', 'normal');
         }
 
-        // Justificar texto (exceto última linha e linhas curtas)
-        const isLastLine = index === bodyLines.length - 1;
-        const trimmedLine = line.trim();
+        if (words.length === 0) return;
 
-        if (!isLastLine && trimmedLine.length > 0) {
-          const words = trimmedLine.split(/\s+/); // Split por qualquer espaço
-          if (words.length > 1 && words.filter(w => w.length > 0).length > 1) {
-            const totalTextWidth = words.reduce((sum, word) => sum + pdf.getTextWidth(word), 0);
-            const totalSpaceNeeded = maxWidth - totalTextWidth;
-            const spacePerGap = totalSpaceNeeded / (words.length - 1);
+        // Calcular largura total
+        const totalTextWidth = words.reduce((sum, word) => {
+          pdf.setFont('helvetica', word.isBold ? 'bold' : 'normal');
+          return sum + pdf.getTextWidth(word.text);
+        }, 0);
 
-            let xPos = margin;
-            words.forEach((word, i) => {
-              if (word.length > 0) {
-                pdf.text(word, xPos, yPosition);
-                if (i < words.length - 1) {
-                  xPos += pdf.getTextWidth(word) + spacePerGap;
-                }
-              }
-            });
-          } else {
-            pdf.text(trimmedLine, margin, yPosition);
+        let xPos = margin;
+        const spaceWidth = justify && words.length > 1 ? (maxWidth - totalTextWidth) / (words.length - 1) : pdf.getTextWidth(' ');
+
+        words.forEach((word, i) => {
+          pdf.setFont('helvetica', word.isBold ? 'bold' : 'normal');
+          pdf.text(word.text, xPos, yPosition);
+          xPos += pdf.getTextWidth(word.text);
+          if (i < words.length - 1) {
+            xPos += spaceWidth;
           }
-        } else {
-          pdf.text(trimmedLine, margin, yPosition);
+        });
+
+        pdf.setFont('helvetica', 'normal');
+        yPosition += 5.5;
+      };
+
+      words.forEach((word, index) => {
+        if (!word) return;
+
+        let cleanWord = word;
+        let wordIsBold = isBold;
+
+        // Processar marcadores
+        if (word.includes('<B>')) {
+          cleanWord = cleanWord.replace(/<B>/g, '');
+          isBold = true;
+          wordIsBold = true;
         }
 
-        yPosition += 5.5;
+        if (word.includes('</B>')) {
+          cleanWord = cleanWord.replace(/<\/B>/g, '');
+          isBold = false;
+        }
+
+        if (!cleanWord) return;
+
+        // Calcular largura da palavra
+        pdf.setFont('helvetica', wordIsBold ? 'bold' : 'normal');
+        const wordWidth = pdf.getTextWidth(cleanWord);
+        const spaceWidth = pdf.getTextWidth(' ');
+
+        // Verificar se a palavra cabe na linha atual
+        const projectedWidth = currentLineWidth + (currentLine.length > 0 ? spaceWidth : 0) + wordWidth;
+
+        if (projectedWidth > maxWidth && currentLine.length > 0) {
+          // Renderizar linha atual (justificada)
+          renderLine(currentLine, true);
+          currentLine = [];
+          currentLineWidth = 0;
+        }
+
+        // Adicionar palavra à linha atual
+        currentLine.push({ text: cleanWord, isBold: wordIsBold });
+        currentLineWidth += wordWidth + (currentLine.length > 1 ? spaceWidth : 0);
+
+        // Se for a última palavra, renderizar sem justificar
+        if (index === words.length - 1) {
+          renderLine(currentLine, false);
+        }
       });
 
       // Assinaturas
-      yPosition += 20;
+      yPosition += 25;
       if (yPosition > pageHeight - 30) {
         pdf.addPage();
         yPosition = addHeader();
@@ -266,33 +388,34 @@ export default function VisualizarAtaPage() {
       pdf.setFont('helvetica', 'bold');
 
       // Calcular posições para 3 assinaturas distribuídas
-      const signatureWidth = 50;
-      const totalSignaturesWidth = signatureWidth * 3;
-      const spacing = (maxWidth - totalSignaturesWidth) / 4;
+      const signatureWidth = 40;
+      const gapBetweenSignatures = 20;
+      const totalSignaturesWidth = (signatureWidth * 3) + (gapBetweenSignatures * 2);
+      const startX = (pageWidth - totalSignaturesWidth) / 2;
 
-      const pos1 = margin + spacing;
-      const pos2 = pos1 + signatureWidth + spacing;
-      const pos3 = pos2 + signatureWidth + spacing;
+      const pos1 = startX;
+      const pos2 = pos1 + signatureWidth + gapBetweenSignatures;
+      const pos3 = pos2 + signatureWidth + gapBetweenSignatures;
 
       // Linha para assinatura VM
       pdf.line(pos1, signatureY, pos1 + signatureWidth, signatureY);
       pdf.text(nomeVM.toUpperCase(), pos1 + signatureWidth/2, signatureY + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Venerável Mestre', pos1 + signatureWidth/2, signatureY + 10, { align: 'center' });
+      pdf.text(cargosVM, pos1 + signatureWidth/2, signatureY + 10, { align: 'center' });
 
       // Linha para assinatura Secretário
       pdf.setFont('helvetica', 'bold');
       pdf.line(pos2, signatureY, pos2 + signatureWidth, signatureY);
       pdf.text(nomeSec.toUpperCase(), pos2 + signatureWidth/2, signatureY + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Secretário', pos2 + signatureWidth/2, signatureY + 10, { align: 'center' });
+      pdf.text(cargosSec, pos2 + signatureWidth/2, signatureY + 10, { align: 'center' });
 
       // Linha para assinatura Orador
       pdf.setFont('helvetica', 'bold');
       pdf.line(pos3, signatureY, pos3 + signatureWidth, signatureY);
       pdf.text(nomeOrador.toUpperCase(), pos3 + signatureWidth/2, signatureY + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal');
-      pdf.text('Orador', pos3 + signatureWidth/2, signatureY + 10, { align: 'center' });
+      pdf.text(cargosOrador, pos3 + signatureWidth/2, signatureY + 10, { align: 'center' });
 
       pdf.save(`Ata_${ata.numeroAta.replace('/', '_')}.pdf`);
     } catch (error) {
@@ -429,12 +552,36 @@ export default function VisualizarAtaPage() {
                     }
                   })()
                 }. Os cargos foram ocupados na seguinte ordem:{' '}
-                {ata.cargos.map((cargo, index) => (
-                  <span key={index}>
-                    <strong>{cargo.cargo}:</strong> {formatarNomeCargo(cargo)}
-                    {index < ata.cargos.length - 1 ? ', ' : '. '}
-                  </span>
-                ))}
+                {(() => {
+                  // Agrupar cargos por membro
+                  const cargosPorMembro = {};
+                  ata.cargos.forEach(cargo => {
+                    const nome = cargo.membro ? cargo.membro.nome : cargo.nomeManual;
+                    if (!cargosPorMembro[nome]) {
+                      cargosPorMembro[nome] = {
+                        cargos: [],
+                        cargoObj: cargo
+                      };
+                    }
+                    cargosPorMembro[nome].cargos.push(cargo.cargo);
+                  });
+
+                  return Object.entries(cargosPorMembro).map(([nome, info], index, arr) => {
+                    // Ordenar: "Membro do Ministério Público" sempre por último
+                    const cargosOrdenados = info.cargos.sort((a, b) => {
+                      if (a === 'Membro do Ministério Público') return 1;
+                      if (b === 'Membro do Ministério Público') return -1;
+                      return 0;
+                    });
+
+                    return (
+                      <span key={index}>
+                        <strong>{cargosOrdenados.join(' / ')}:</strong> {formatarNomeCargo(info.cargoObj)}
+                        {index < arr.length - 1 ? ', ' : '. '}
+                      </span>
+                    );
+                  });
+                })()}
                 {ata.presencas.filter(p => p.tipo === 'QUADRO').length > 0 && (
                   <>
                     Estiveram também presentes os Irmãos membros do quadro da loja:{' '}
@@ -478,16 +625,51 @@ export default function VisualizarAtaPage() {
                   <> <strong>PALAVRA A BEM DESTA LOJA OU DA MAÇONARIA EM GERAL:</strong> {ata.palavraBemLoja}</>
                 )}
                 {' '}<strong>TRONCO DE BENEFICÊNCIA:</strong> Após o giro da esmoleira, o resultado da coleta foi de R$ {Number(ata.valorTronco).toFixed(2).replace('.', ',')} ({
-                  Number(ata.valorTronco).toFixed(2).split('.')[0]
-                } reais{
-                  Number(ata.valorTronco).toFixed(2).split('.')[1] !== '00'
-                    ? ` e ${Number(ata.valorTronco).toFixed(2).split('.')[1]} centavos`
-                    : ''
+                  (() => {
+                    const numeroParaExtenso = (numero) => {
+                      const unidades = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+                      const dez_vinte = ['dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+                      const dezenas = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+                      const centenas = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+
+                      const num = parseInt(numero);
+
+                      if (num === 0) return 'zero';
+                      if (num < 10) return unidades[num];
+                      if (num >= 10 && num < 20) return dez_vinte[num - 10];
+                      if (num >= 20 && num < 100) {
+                        const dez = Math.floor(num / 10);
+                        const uni = num % 10;
+                        return uni === 0 ? dezenas[dez] : `${dezenas[dez]} e ${unidades[uni]}`;
+                      }
+                      if (num === 100) return 'cem';
+                      if (num > 100 && num < 1000) {
+                        const cen = Math.floor(num / 100);
+                        const resto = num % 100;
+                        if (resto === 0) return centenas[cen];
+                        if (resto < 10) return `${centenas[cen]} e ${unidades[resto]}`;
+                        if (resto < 20) return `${centenas[cen]} e ${dez_vinte[resto - 10]}`;
+                        const dez = Math.floor(resto / 10);
+                        const uni = resto % 10;
+                        return uni === 0 ? `${centenas[cen]} e ${dezenas[dez]}` : `${centenas[cen]} e ${dezenas[dez]} e ${unidades[uni]}`;
+                      }
+                      return numero.toString();
+                    };
+
+                    const reais = parseInt(Number(ata.valorTronco).toFixed(2).split('.')[0]);
+                    const centavos = parseInt(Number(ata.valorTronco).toFixed(2).split('.')[1]);
+                    const reaisExtenso = numeroParaExtenso(reais);
+                    const centavosExtenso = numeroParaExtenso(centavos);
+
+                    return centavos !== 0
+                      ? `${reaisExtenso} ${reais === 1 ? 'real' : 'reais'} e ${centavosExtenso} ${centavos === 1 ? 'centavo' : 'centavos'}`
+                      : `${reaisExtenso} ${reais === 1 ? 'real' : 'reais'}`;
+                  })()
                 }). Os trabalhos foram encerrados às {ata.horarioEncerramento} hs e nada mais havendo a tratar eu,{' '}
                 {ata.cargos.find(c => c.cargo === 'Secretário')
                   ? formatarNomeCargo(ata.cargos.find(c => c.cargo === 'Secretário'))
                   : ''
-                }, Secretário AD HOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.
+                }, Secretário ADHOC, lavrei a presente ata que, acaba de ser lida e se aprovada será assinada por quem de direito.
               </p>
             </div>
             </div>
@@ -503,7 +685,25 @@ export default function VisualizarAtaPage() {
                        ata.cargos.find(c => c.cargo === 'Venerável Mestre').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-[9px] md:text-xs text-gray-900">Venerável Mestre</p>
+                <p className="text-[9px] md:text-xs text-gray-900">
+                  {(() => {
+                    const vm = ata.cargos.find(c => c.cargo === 'Venerável Mestre');
+                    if (!vm) return 'Venerável Mestre';
+                    const nomeVM = vm.membro?.nome || vm.nomeManual;
+                    const cargos = ata.cargos
+                      .filter(c => {
+                        const nome = c.membro?.nome || c.nomeManual;
+                        return nome === nomeVM;
+                      })
+                      .map(c => c.cargo)
+                      .sort((a, b) => {
+                        if (a === 'Membro do Ministério Público') return 1;
+                        if (b === 'Membro do Ministério Público') return -1;
+                        return 0;
+                      });
+                    return cargos.join(' / ');
+                  })()}
+                </p>
               </div>
 
               <div className="text-center w-full md:w-auto">
@@ -514,7 +714,25 @@ export default function VisualizarAtaPage() {
                        ata.cargos.find(c => c.cargo === 'Secretário').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-[9px] md:text-xs text-gray-900">Secretário</p>
+                <p className="text-[9px] md:text-xs text-gray-900">
+                  {(() => {
+                    const sec = ata.cargos.find(c => c.cargo === 'Secretário');
+                    if (!sec) return 'Secretário';
+                    const nomeSec = sec.membro?.nome || sec.nomeManual;
+                    const cargos = ata.cargos
+                      .filter(c => {
+                        const nome = c.membro?.nome || c.nomeManual;
+                        return nome === nomeSec;
+                      })
+                      .map(c => c.cargo)
+                      .sort((a, b) => {
+                        if (a === 'Membro do Ministério Público') return 1;
+                        if (b === 'Membro do Ministério Público') return -1;
+                        return 0;
+                      });
+                    return cargos.join(' / ');
+                  })()}
+                </p>
               </div>
 
               <div className="text-center w-full md:w-auto">
@@ -525,7 +743,25 @@ export default function VisualizarAtaPage() {
                        ata.cargos.find(c => c.cargo === 'Orador').nomeManual)?.toUpperCase()
                     : ''}
                 </p>
-                <p className="text-[9px] md:text-xs text-gray-900">Orador</p>
+                <p className="text-[9px] md:text-xs text-gray-900">
+                  {(() => {
+                    const orad = ata.cargos.find(c => c.cargo === 'Orador');
+                    if (!orad) return 'Orador';
+                    const nomeOrad = orad.membro?.nome || orad.nomeManual;
+                    const cargos = ata.cargos
+                      .filter(c => {
+                        const nome = c.membro?.nome || c.nomeManual;
+                        return nome === nomeOrad;
+                      })
+                      .map(c => c.cargo)
+                      .sort((a, b) => {
+                        if (a === 'Membro do Ministério Público') return 1;
+                        if (b === 'Membro do Ministério Público') return -1;
+                        return 0;
+                      });
+                    return cargos.join(' / ');
+                  })()}
+                </p>
               </div>
               </div>
             </div>

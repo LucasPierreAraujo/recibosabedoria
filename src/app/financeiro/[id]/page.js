@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Download, Check, X, DollarSign, Briefcase, BookOpen, Home, Undo2 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import autoTable from 'jspdf-autotable';
 
 export default function DetalhePlanilhaPage() {
   const router = useRouter();
@@ -413,44 +413,288 @@ export default function DetalhePlanilhaPage() {
   const excluirLancamentoTronco = (tipo, id) => excluirLancamento(tipo, id);
 
   const exportarPDF = async () => {
-    const elemento = document.getElementById('planilha-completa');
-
-     try {
-      const canvas = await html2canvas(elemento, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/png');
+    try {
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4'
       });
 
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const marginBottom = 15; // Margem inferior de 15mm
-      const usablePageHeight = pageHeight - marginBottom; // Altura útil da página
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      const pageWidth = 210;
+      const margin = 15;
+      let yPosition = margin;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= usablePageHeight;
+      // Carregar logo
+      let logoImg;
+      try {
+        logoImg = await fetch('/logo.jpeg').then(r => r.blob()).then(b => new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.readAsDataURL(b);
+        }));
+      } catch (error) {
+        console.error('Erro ao carregar logo:', error);
+      }
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= usablePageHeight;
+      // Adicionar logo
+      if (logoImg) {
+        pdf.addImage(logoImg, 'JPEG', pageWidth / 2 - 15, yPosition, 30, 30);
+        yPosition += 40;
+      }
+
+      // Cabeçalho
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774', pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 7;
+
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Planilha Financeira - ${meses[planilha.mes - 1]} / ${planilha.ano}`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 10;
+
+      // Tabela de Mensalidades
+      const dadosMensalidades = membros.map(membro => {
+        const pagou = pagamentosPorMembro[membro.id];
+        return [
+          membro.nome,
+          membro.cim || '-',
+          pagou ? 'Pago' : 'Pendente',
+          pagou ? pagou.mesesReferentes.join(', ') : '-',
+          pagou ? `R$ ${pagou.valorTotal.toFixed(2)}` : '-'
+        ];
+      });
+
+      autoTable(pdf, {
+        startY: yPosition,
+        head: [['Nome', 'CIM', 'Status', 'Mês Ref.', 'Valor']],
+        body: dadosMensalidades,
+        theme: 'grid',
+        headStyles: { fillColor: [200, 200, 200], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 8, cellPadding: 2 },
+        showHead: 'firstPage'
+      });
+
+      yPosition = pdf.lastAutoTable.finalY + 5;
+
+      // Outros Recebimentos
+      if (planilha.receitas && planilha.receitas.length > 0) {
+        const dadosReceitas = planilha.receitas.map(r => [
+          r.descricao,
+          new Date(r.data).toLocaleDateString(),
+          `R$ ${Number(r.valor).toFixed(2)}`
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['Outros Recebimentos', 'Data', 'Valor']],
+          body: dadosReceitas,
+          theme: 'grid',
+          headStyles: { fillColor: [200, 240, 200], textColor: [0, 0, 0] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8, cellPadding: 2 },
+          showHead: 'firstPage'
+        });
+
+        yPosition = pdf.lastAutoTable.finalY + 5;
+      }
+
+      // Despesas
+      if (planilha.despesas && planilha.despesas.length > 0) {
+        const dadosDespesas = planilha.despesas.map(d => [
+          d.descricao,
+          new Date(d.data).toLocaleDateString(),
+          d.tipoGasto,
+          `R$ ${Number(d.valor).toFixed(2)}`
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['Despesas', 'Data', 'Tipo', 'Valor']],
+          body: dadosDespesas,
+          theme: 'grid',
+          headStyles: { fillColor: [255, 200, 200], textColor: [0, 0, 0] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8, cellPadding: 2 },
+          showHead: 'firstPage'
+        });
+
+        yPosition = pdf.lastAutoTable.finalY + 5;
+      }
+
+      // Tronco
+      if (planilha.troncos && planilha.troncos.length > 0) {
+        const dadosTronco = planilha.troncos.map(t => [
+          t.grauSessao,
+          new Date(t.data).toLocaleDateString(),
+          new Date(t.dataDeposito).toLocaleDateString(),
+          `R$ ${Number(t.valor).toFixed(2)}`
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['Tronco - Grau', 'Data Sessão', 'Data Depósito', 'Valor']],
+          body: dadosTronco,
+          theme: 'grid',
+          headStyles: { fillColor: [255, 255, 200], textColor: [0, 0, 0] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8, cellPadding: 2 },
+          showHead: 'firstPage'
+        });
+
+        yPosition = pdf.lastAutoTable.finalY + 5;
+      }
+
+      // Doações Filantrópicas
+      if (planilha.doacoesFilantropicas && planilha.doacoesFilantropicas.length > 0) {
+        const dadosDoacoes = planilha.doacoesFilantropicas.map(d => [
+          d.descricao,
+          new Date(d.dataPagamento).toLocaleDateString(),
+          `R$ ${Number(d.valor).toFixed(2)}`
+        ]);
+
+        autoTable(pdf, {
+          startY: yPosition,
+          head: [['Doações Filantrópicas', 'Data', 'Valor']],
+          body: dadosDoacoes,
+          theme: 'grid',
+          headStyles: { fillColor: [255, 220, 200], textColor: [0, 0, 0] },
+          margin: { left: margin, right: margin },
+          styles: { fontSize: 8, cellPadding: 2 },
+          showHead: 'firstPage'
+        });
+
+        yPosition = pdf.lastAutoTable.finalY + 5;
+      }
+
+      // Resumos em tabela
+      yPosition += 5;
+
+      const totalMensalidades = planilha.pagamentos?.filter(p => p.quantidadeMeses > 0).reduce((sum, p) => sum + Number(p.valorPago), 0) || 0;
+      const totalReceitas = planilha.receitas?.reduce((sum, r) => sum + Number(r.valor), 0) || 0;
+
+      // Tabela Resumo Caixa
+      autoTable(pdf, {
+        startY: yPosition,
+        head: [['Resumo Caixa Geral', 'Valor']],
+        body: [
+          ['Saldo Inicial', `R$ ${Number(planilha.saldoInicialCaixa).toFixed(2)}`],
+          ['Total Mensalidades', `R$ ${totalMensalidades.toFixed(2)}`],
+          ['Outros Recebimentos', `R$ ${totalReceitas.toFixed(2)}`],
+          ['Total Despesas', `R$ ${Number(planilha.totalDespesas).toFixed(2)}`],
+          ['SALDO FINAL CAIXA', `R$ ${Number(planilha.saldoFinalCaixa).toFixed(2)}`]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [100, 150, 200], textColor: [255, 255, 255], fontStyle: 'bold' },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 3 },
+        bodyStyles: { 0: { fontStyle: 'bold' } },
+        showHead: 'firstPage'
+      });
+
+      yPosition = pdf.lastAutoTable.finalY + 5;
+
+      // Tabela Resumo Tronco
+      autoTable(pdf, {
+        startY: yPosition,
+        head: [['Resumo Tronco de Beneficência', 'Valor']],
+        body: [
+          ['Saldo Inicial', `R$ ${Number(planilha.saldoInicialTronco).toFixed(2)}`],
+          ['Total Recebido', `R$ ${Number(planilha.totalTroncoRecebido).toFixed(2)}`],
+          ['Doações Filantrópicas', `R$ ${Number(planilha.totalDoacoesFilantropicas).toFixed(2)}`],
+          ['SALDO FINAL TRONCO', `R$ ${Number(planilha.saldoFinalTronco).toFixed(2)}`]
+        ],
+        theme: 'grid',
+        headStyles: { fillColor: [200, 180, 100], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9, cellPadding: 3 },
+        showHead: 'firstPage'
+      });
+
+      yPosition = pdf.lastAutoTable.finalY + 5;
+
+      // Saldo Total
+      const saldoTotal = Number(planilha.saldoFinalCaixa) + Number(planilha.saldoFinalTronco);
+
+      autoTable(pdf, {
+        startY: yPosition,
+        body: [[`SALDO FINAL TOTAL (Caixa + Tronco): R$ ${saldoTotal.toFixed(2)}`]],
+        theme: 'plain',
+        styles: { fontSize: 12, fontStyle: 'bold', halign: 'right', cellPadding: 3 },
+        margin: { left: margin, right: margin },
+        showHead: 'firstPage'
+      });
+
+      yPosition = pdf.lastAutoTable.finalY + 10;
+
+      // Assinaturas
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`${localidade.toUpperCase()}, ${diaAssinatura} de ${meses[mesAssinatura - 1].toLowerCase()} de ${anoAssinatura}.`, pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 15;
+
+      // Carregar assinaturas
+      let vmAssinaturaImg, tesAssinaturaImg;
+
+      try {
+        if (veneravelMestre?.assinaturaUrl) {
+          vmAssinaturaImg = await fetch(veneravelMestre.assinaturaUrl).then(r => r.blob()).then(b => new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(b);
+          }));
+        }
+
+        if (tesoureiro?.assinaturaUrl) {
+          tesAssinaturaImg = await fetch(tesoureiro.assinaturaUrl).then(r => r.blob()).then(b => new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(b);
+          }));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar assinaturas:', error);
+      }
+
+      // Assinaturas com imagens
+      if (veneravelMestre) {
+        const col1X = pageWidth / 4;
+        const col2X = (pageWidth / 4) * 3;
+        const assinaturaY = yPosition;
+
+        // Assinatura VM
+        if (vmAssinaturaImg) {
+          pdf.addImage(vmAssinaturaImg, 'PNG', col1X - 20, assinaturaY, 40, 15);
+        }
+
+        // Assinatura Tesoureiro
+        if (tesAssinaturaImg) {
+          pdf.addImage(tesAssinaturaImg, 'PNG', col2X - 20, assinaturaY, 40, 15);
+        }
+
+        yPosition += 17;
+
+        pdf.setFontSize(9);
+        pdf.text(veneravelMestre.nome, col1X, yPosition, { align: 'center' });
+        pdf.text(tesoureiro?.nome || '', col2X, yPosition, { align: 'center' });
+        yPosition += 4;
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Venerável Mestre', col1X, yPosition, { align: 'center' });
+        pdf.text('Tesoureiro', col2X, yPosition, { align: 'center' });
+        yPosition += 4;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.text(`CIM: ${veneravelMestre.cim}`, col1X, yPosition, { align: 'center' });
+        pdf.text(`CIM: ${tesoureiro?.cim || ''}`, col2X, yPosition, { align: 'center' });
       }
 
       pdf.save(`planilha_${meses[planilha.mes - 1]}_${planilha.ano}.pdf`);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar PDF. Tente novamente.');
     }
   };
 
@@ -655,11 +899,12 @@ export default function DetalhePlanilhaPage() {
 
         {/* Conteúdo para PDF */}
         <div id="planilha-completa" className="bg-white p-6 rounded-lg shadow-lg">
+          {/* Cabeçalho */}
           <div className="text-center mb-4">
             <img
               src="/logo.jpeg"
               alt="Logo A.R.L.S. Sabedoria de Salomão"
-              className="h-16 w-auto mx-auto mb-3"
+              className="h-20 w-auto mx-auto mb-3"
             />
             <h1 className="text-2xl font-bold text-gray-800">A.R.L.S. SABEDORIA DE SALOMÃO Nº 4774</h1>
             <h2 className="text-lg text-gray-600 mt-1">Planilha Financeira - {meses[planilha.mes - 1]} / {planilha.ano}</h2>
@@ -898,7 +1143,7 @@ export default function DetalhePlanilhaPage() {
           </div>
 
           {/* Local e Assinaturas */}
-          <div className="mt-6 text-center text-base font-serif text-gray-900 break-inside-avoid page-break-before">
+          <div className="mt-6 text-center text-base font-serif text-gray-900 break-inside-avoid">
             <p className="mb-6 text-gray-900 font-bold">
                 {localidade.toUpperCase()}, {diaAssinatura} de {meses[mesAssinatura - 1].toLowerCase()} de {anoAssinatura}.
             </p>

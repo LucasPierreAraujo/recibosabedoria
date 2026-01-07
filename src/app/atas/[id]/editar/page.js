@@ -72,16 +72,55 @@ export default function EditarAtaPage() {
         setCoberturaTemplo(ata.coberturaTemplo || '');
         setPalavraBemLoja(ata.palavraBemLoja || '');
 
-        // Preencher cargos
-        const cargosFormatados = ata.cargos.map(c => ({
-          cargo: c.cargo,
-          valor: {
-            tipo: c.membroId ? 'cadastrado' : 'manual',
-            membroId: c.membroId || '',
-            nomeManual: c.nomeManual || ''
+        // Preencher cargos - sempre começar com os 12 cargos padrão
+        const cargosPadrao = [
+          'Venerável Mestre',
+          '1° Vigilante',
+          '2° Vigilante',
+          'Secretário',
+          'Tesoureiro',
+          'Orador',
+          '1° Diácono',
+          '2° Diácono',
+          'Preparador',
+          'Mestre de Harmonia',
+          'Guarda do Templo',
+          'Membro do Ministério Público'
+        ];
+
+        // Criar lista com cargos padrão
+        const cargosFormatados = cargosPadrao.map(cargoPadrao => {
+          const cargoExistente = ata.cargos.find(c => c.cargo === cargoPadrao);
+          if (cargoExistente) {
+            return {
+              cargo: cargoPadrao,
+              valor: {
+                tipo: cargoExistente.membroId ? 'cadastrado' : 'manual',
+                membroId: cargoExistente.membroId || '',
+                nomeManual: cargoExistente.nomeManual || ''
+              }
+            };
+          } else {
+            return {
+              cargo: cargoPadrao,
+              valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' }
+            };
           }
-        }));
-        setCargos(cargosFormatados);
+        });
+
+        // Adicionar cargos extras (que não estão na lista padrão)
+        const cargosExtras = ata.cargos
+          .filter(c => !cargosPadrao.includes(c.cargo))
+          .map(c => ({
+            cargo: c.cargo,
+            valor: {
+              tipo: c.membroId ? 'cadastrado' : 'manual',
+              membroId: c.membroId || '',
+              nomeManual: c.nomeManual || ''
+            }
+          }));
+
+        setCargos([...cargosFormatados, ...cargosExtras]);
 
         // Preencher presenças do quadro (somente IDs de membros cadastrados)
         const presencasQuadroIds = ata.presencas
@@ -113,11 +152,11 @@ export default function EditarAtaPage() {
     const livroSelecionado = livro.toUpperCase();
 
     if (livroSelecionado === 'APRENDIZ') {
-      return grauMembro === 'APRENDIZ' || grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE';
+      return grauMembro === 'APRENDIZ' || grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     } else if (livroSelecionado === 'COMPANHEIRO') {
-      return grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE';
+      return grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     } else if (livroSelecionado === 'MESTRE') {
-      return grauMembro === 'MESTRE';
+      return grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     }
     return true;
   });
@@ -377,7 +416,7 @@ export default function EditarAtaPage() {
                         membros={membrosFiltrados}
                       />
                     </div>
-                    {index >= 11 && ( // Só permite remover cargos extras
+                    {index >= 12 && ( // Só permite remover cargos extras
                       <button
                         onClick={() => removerCargo(index)}
                         className="self-end p-2 text-red-600 hover:bg-red-50 rounded"

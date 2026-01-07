@@ -168,9 +168,9 @@ export default function PresencasPage() {
 
   const getMembrosPermitidos = (grauReuniao, dataReuniao) => {
     const hierarquia = {
-      'APRENDIZ': ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'],
-      'COMPANHEIRO': ['COMPANHEIRO', 'MESTRE'],
-      'MESTRE': ['MESTRE']
+      'APRENDIZ': ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'],
+      'COMPANHEIRO': ['COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'],
+      'MESTRE': ['MESTRE', 'MESTRE INSTALADO']
     };
 
     return membros.filter(m => {
@@ -205,7 +205,8 @@ export default function PresencasPage() {
         const hierarquia = {
           'APRENDIZ': ['APRENDIZ'],
           'COMPANHEIRO': ['APRENDIZ', 'COMPANHEIRO'],
-          'MESTRE': ['APRENDIZ', 'COMPANHEIRO', 'MESTRE']
+          'MESTRE': ['APRENDIZ', 'COMPANHEIRO', 'MESTRE'],
+          'MESTRE INSTALADO': ['APRENDIZ', 'COMPANHEIRO', 'MESTRE']
         };
 
         // Verificar se o grau da reunião está permitido para o membro

@@ -1,7 +1,7 @@
 "use client"
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Users, LogOut, BookOpen, DollarSign, ClipboardCheck } from 'lucide-react';
+import { FileText, Users, LogOut, BookOpen, DollarSign, ClipboardCheck, CreditCard } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -115,6 +115,22 @@ export default function DashboardPage() {
             </div>
             <p className="text-gray-600">
               Registre e gerencie presenças dos membros nas sessões
+            </p>
+          </div>
+
+          {/* Card Mensalidades */}
+          <div
+            onClick={() => router.push('/mensalidades')}
+            className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-transparent hover:border-orange-600"
+          >
+            <div className="flex items-center gap-4 mb-4">
+              <div className="bg-orange-100 p-4 rounded-full">
+                <CreditCard size={32} className="text-orange-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">Controle de Mensalidades</h3>
+            </div>
+            <p className="text-gray-600">
+              Gerencie o controle de pagamento de mensalidades dos membros
             </p>
           </div>
         </div>

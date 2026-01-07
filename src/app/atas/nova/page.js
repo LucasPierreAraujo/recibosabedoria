@@ -39,6 +39,7 @@ export default function NovaAtaPage() {
     { cargo: 'Preparador', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
     { cargo: 'Mestre de Harmonia', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
     { cargo: 'Guarda do Templo', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
+    { cargo: 'Membro do Ministério Público', valor: { tipo: 'cadastrado', membroId: '', nomeManual: '' } },
   ]);
   
   // Presenças
@@ -65,14 +66,14 @@ export default function NovaAtaPage() {
     const livroSelecionado = livro.toUpperCase();
 
     if (livroSelecionado === 'APRENDIZ') {
-      // Livro de Aprendiz: aceita Aprendiz, Companheiro e Mestre
-      return grauMembro === 'APRENDIZ' || grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE';
+      // Livro de Aprendiz: aceita Aprendiz, Companheiro, Mestre e Mestre Instalado
+      return grauMembro === 'APRENDIZ' || grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     } else if (livroSelecionado === 'COMPANHEIRO') {
-      // Livro de Companheiro: aceita Companheiro e Mestre
-      return grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE';
+      // Livro de Companheiro: aceita Companheiro, Mestre e Mestre Instalado
+      return grauMembro === 'COMPANHEIRO' || grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     } else if (livroSelecionado === 'MESTRE') {
-      // Livro de Mestre: aceita apenas Mestre
-      return grauMembro === 'MESTRE';
+      // Livro de Mestre: aceita Mestre e Mestre Instalado
+      return grauMembro === 'MESTRE' || grauMembro === 'MESTRE INSTALADO';
     }
     return true;
   });
@@ -324,7 +325,7 @@ export default function NovaAtaPage() {
                         membros={membrosFiltrados}
                       />
                     </div>
-                    {index >= 11 && ( // Só permite remover cargos extras
+                    {index >= 12 && ( // Só permite remover cargos extras
                       <button
                         onClick={() => removerCargo(index)}
                         className="self-end p-2 text-red-600 hover:bg-red-50 rounded"

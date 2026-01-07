@@ -16,7 +16,7 @@ export default function MembrosPage() {
     grau: '',
     status: 'ATIVO',
     cim: '',
-    cargo: '',
+    cargo: '', // Será string com cargos separados por " / "
     assinaturaUrl: '',
     dataIniciacao: '',
     dataFiliacao: '',
@@ -25,14 +25,17 @@ export default function MembrosPage() {
     dataInstalacao: '' // <--- CAMPO ADICIONADO NO ESTADO
   });
 
+  // Estado para controlar checkboxes de cargos
+  const [cargosSelecionados, setCargosSelecionados] = useState([]);
+
   const graus = ['CANDIDATO', 'APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'];
   const statusOptions = ['ATIVO', 'INATIVO'];
-  const cargos = [
-    '',
+  const cargosDisponiveis = [
     'VENERÁVEL MESTRE',
-    'ORADOR / MEMBRO DO MINISTÉRIO PÚBLICO',
+    'ORADOR',
+    'MEMBRO DO MINISTÉRIO PÚBLICO',
     'SECRETÁRIO',
-    'TESOUREIRO',    
+    'TESOUREIRO',
   ];
 
   // ================== CARREGAR MEMBROS ==================
@@ -40,6 +43,11 @@ export default function MembrosPage() {
     setLoading(true);
     try {
       const response = await fetch('/api/membros');
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (Array.isArray(data)) {
@@ -47,12 +55,11 @@ export default function MembrosPage() {
       } else if (data.membros && Array.isArray(data.membros)) {
         setMembros(data.membros);
       } else {
-        console.error('Resposta inesperada:', data);
+        console.error('Resposta inesperada. Tipo:', typeof data, 'Dados:', data);
         setMembros([]);
       }
     } catch (error) {
       console.error('Erro ao carregar membros:', error);
-      alert('Erro ao carregar membros');
       setMembros([]);
     } finally {
       setLoading(false);
@@ -148,6 +155,27 @@ export default function MembrosPage() {
   }
 };
 
+  // ================== GERENCIAR CARGOS ==================
+  const handleCargoToggle = (cargo) => {
+    let novosCargos;
+    if (cargosSelecionados.includes(cargo)) {
+      novosCargos = cargosSelecionados.filter(c => c !== cargo);
+    } else {
+      novosCargos = [...cargosSelecionados, cargo];
+    }
+
+    // Ordenar para que "Membro do Ministério Público" sempre fique por último
+    const cargosOrdenados = novosCargos.sort((a, b) => {
+      if (a === 'MEMBRO DO MINISTÉRIO PÚBLICO') return 1;
+      if (b === 'MEMBRO DO MINISTÉRIO PÚBLICO') return -1;
+      return 0;
+    });
+
+    setCargosSelecionados(cargosOrdenados);
+    // Atualizar formData.cargo como string separada por " / "
+    setFormData({ ...formData, cargo: cargosOrdenados.join(' / ') });
+  };
+
   // ================== SUBMIT ==================
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -186,6 +214,7 @@ export default function MembrosPage() {
         dataElevacao: '',
         dataInstalacao: '' // <--- RESETADO
       });
+      setCargosSelecionados([]);
       setShowForm(false);
       setEditingId(null);
       carregarMembros();
@@ -227,6 +256,15 @@ export default function MembrosPage() {
       dataElevacao: membro.dataElevacao || '',
       dataInstalacao: membro.dataInstalacao || '' // <--- CARREGADO
     });
+
+    // Inicializar cargos selecionados a partir do cargo salvo
+    if (membro.cargo) {
+      const cargos = membro.cargo.split(' / ').map(c => c.trim());
+      setCargosSelecionados(cargos);
+    } else {
+      setCargosSelecionados([]);
+    }
+
     setEditingId(membro.id);
     setShowForm(true);
   };
@@ -245,6 +283,7 @@ export default function MembrosPage() {
       dataElevacao: '',
       dataInstalacao: '' // <--- RESETADO
     });
+    setCargosSelecionados([]);
     setShowForm(false);
     setEditingId(null);
   };
@@ -343,14 +382,28 @@ export default function MembrosPage() {
               {/* Cargo */}
               {mostrarCargo && (
                 <div>
-                  <label className="block text-sm font-bold mb-1 text-gray-700">Cargo em Loja</label>
-                  <select
-                    value={formData.cargo}
-                    onChange={(e) => setFormData({ ...formData, cargo: e.target.value })}
-                    className="w-full border-2 border-gray-300 rounded px-3 py-2 text-gray-800"
-                  >
-                    {cargos.map(c => <option key={c} value={c}>{c || 'Sem cargo'}</option>)}
-                  </select>
+                  <label className="block text-sm font-bold mb-1 text-gray-700">Cargo em Loja (pode selecionar múltiplos)</label>
+                  <div className="border-2 border-gray-300 rounded p-3 space-y-2">
+                    {cargosDisponiveis.map(cargo => (
+                      <label key={cargo} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={cargosSelecionados.includes(cargo)}
+                          onChange={() => handleCargoToggle(cargo)}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-gray-800">{cargo}</span>
+                      </label>
+                    ))}
+                    {cargosSelecionados.length === 0 && (
+                      <p className="text-sm text-gray-500 italic">Nenhum cargo selecionado</p>
+                    )}
+                  </div>
+                  {formData.cargo && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Cargos: <strong>{formData.cargo}</strong>
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -423,29 +476,27 @@ export default function MembrosPage() {
               )}
 
               {/* Upload de Assinatura */}
-              {formData.cargo && formData.cargo !== '' && (
-                <div>
-                  <label className="block text-sm font-bold mb-1 text-gray-700">Assinatura (Opcional)</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded p-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAssinaturaUpload}
-                      className="hidden"
-                      id="assinatura-upload"
-                    />
-                    <label htmlFor="assinatura-upload" className="flex flex-col items-center cursor-pointer">
-                      {formData.assinaturaUrl ? (
-                        <img src={formData.assinaturaUrl} alt="Assinatura" className="max-h-32 mb-2"/>
-                      ) : (
-                        <Upload size={32} className="text-gray-400 mb-2" />
-                      )}
-                      <span className="text-sm text-gray-600">{formData.assinaturaUrl ? 'Clique para alterar' : 'Clique para adicionar assinatura'}</span>
-                      <span className="text-xs text-gray-500 mt-1">PNG, JPG até 2MB</span>
-                    </label>
-                  </div>
+              <div>
+                <label className="block text-sm font-bold mb-1 text-gray-700">Assinatura (Opcional)</label>
+                <div className="border-2 border-dashed border-gray-300 rounded p-4">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAssinaturaUpload}
+                    className="hidden"
+                    id="assinatura-upload"
+                  />
+                  <label htmlFor="assinatura-upload" className="flex flex-col items-center cursor-pointer">
+                    {formData.assinaturaUrl ? (
+                      <img src={formData.assinaturaUrl} alt="Assinatura" className="max-h-32 mb-2"/>
+                    ) : (
+                      <Upload size={32} className="text-gray-400 mb-2" />
+                    )}
+                    <span className="text-sm text-gray-600">{formData.assinaturaUrl ? 'Clique para alterar' : 'Clique para adicionar assinatura'}</span>
+                    <span className="text-xs text-gray-500 mt-1">PNG, JPG até 2MB</span>
+                  </label>
                 </div>
-              )}
+              </div>
 
               {/* Botões */}
               <div className="flex gap-2">
@@ -468,38 +519,73 @@ export default function MembrosPage() {
             Nenhum membro cadastrado
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden overflow-x-auto">
-            <table className="w-full min-w-max">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-gray-700 font-bold">Nome</th>
-                  <th className="px-6 py-3 text-left text-gray-700 font-bold">Grau</th>
-                  <th className="px-6 py-3 text-left text-gray-700 font-bold">CIM</th>
-                  <th className="px-6 py-3 text-left text-gray-700 font-bold">Cargo</th>
-                  <th className="px-6 py-3 text-left text-gray-700 font-bold">Status</th>
-                  <th className="px-6 py-3 text-center text-gray-700 font-bold">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(membros) && membros.map((membro) => (
-                  <tr key={membro.id} className="border-b hover:bg-gray-50">
-                    <td className="px-6 py-4 text-gray-800">{membro.nome}</td>
-                    <td className="px-6 py-4 text-gray-800">{membro.grau}</td>
-                    <td className="px-6 py-4 text-gray-800">{membro.cim || '-'}</td>
-                    <td className="px-6 py-4 text-gray-800">{membro.cargo || '-'}</td>
-                    <td className="px-6 py-4 text-gray-800">{membro.status}</td>
-                    <td className="px-6 py-4 text-center flex justify-center gap-2">
-                      <button onClick={() => handleEdit(membro)} className="text-blue-600 hover:text-blue-800">
-                        <Edit size={20}/>
-                      </button>
-                      <button onClick={() => handleDelete(membro.id)} className="text-red-600 hover:text-red-800">
-                        <Trash2 size={20}/>
-                      </button>
-                    </td>
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-blue-900 text-white">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-bold">Nome</th>
+                    <th className="px-4 py-3 text-left font-bold">Grau</th>
+                    <th className="px-4 py-3 text-left font-bold">CIM</th>
+                    <th className="px-4 py-3 text-left font-bold">Cargo</th>
+                    <th className="px-4 py-3 text-center font-bold">Status</th>
+                    <th className="px-4 py-3 text-center font-bold sticky right-0 bg-blue-900">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {Array.isArray(membros) && membros.map((membro, index) => (
+                    <tr
+                      key={membro.id}
+                      className={`border-b hover:bg-blue-50 transition ${
+                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-gray-900 font-semibold">{membro.nome}</td>
+                      <td className="px-4 py-3 text-gray-800">
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
+                          membro.grau === 'APRENDIZ' ? 'bg-blue-100 text-blue-800' :
+                          membro.grau === 'COMPANHEIRO' ? 'bg-green-100 text-green-800' :
+                          membro.grau === 'MESTRE' ? 'bg-purple-100 text-purple-800' :
+                          membro.grau === 'MESTRE INSTALADO' ? 'bg-indigo-100 text-indigo-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {membro.grau}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-800">{membro.cim || '-'}</td>
+                      <td className="px-4 py-3 text-gray-800 text-sm max-w-xs truncate" title={membro.cargo || '-'}>
+                        {membro.cargo || '-'}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          membro.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {membro.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 sticky right-0 bg-inherit">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleEdit(membro)}
+                            className="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition"
+                            title="Editar"
+                          >
+                            <Edit size={18}/>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(membro.id)}
+                            className="bg-red-600 text-white p-2 rounded hover:bg-red-700 transition"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>

@@ -209,6 +209,35 @@ model AtaPresenca {
   @@map("atas_presencas")
 }
 
+// Controle de Mensalidades
+model ControleMensalidade {
+  id        String @id @default(cuid())
+  ano       Int
+  membroId  String
+  mes       String // JAN, FEV, MAR, etc
+  status    String // ok, x, p, i
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ano, membroId, mes])
+  @@map("controle_mensalidades")
+}
+
+model ConfiguracaoMensalidade {
+  id               String @id @default(cuid())
+  ano              Int
+  mes              String // JAN, FEV, MAR, etc
+  valorMensalidade String
+  valorParcial     String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([ano, mes])
+  @@map("configuracao_mensalidades")
+}
+
 // Modelos para controle de presença em reuniões
 model Reuniao {
   id        String     @id @default(cuid())

@@ -23,7 +23,7 @@ export default function SeletorMembroCargo({
 
   // Valor atual para exibir
   const displayValue = value?.tipo === 'cadastrado'
-    ? value.membroId
+    ? (membros.find(m => m.id === value.membroId)?.nome || value.membroId)
     : (value?.nomeManual || '');
 
   return (
