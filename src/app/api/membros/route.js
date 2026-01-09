@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../lib/prisma';
 
-const grausPermitidos = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE']; 
+const grausPermitidos = ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO']; 
 
 // Função auxiliar para padronizar o mapeamento de dados (POST e PUT)
 const mapMembroData = (body) => ({

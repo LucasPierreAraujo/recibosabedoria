@@ -30,9 +30,10 @@ export default function MensalidadesPage() {
       const data = await response.json();
 
       // Filtrar apenas Aprendiz, Companheiro, Mestre e Mestre Instalado
-      const membrosFiltrados = data.filter(m =>
-        ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(m.grau.toUpperCase())
-      );
+      const membrosFiltrados = data.filter(m => {
+        const grauUpper = m.grau ? m.grau.toUpperCase() : '';
+        return ['APRENDIZ', 'COMPANHEIRO', 'MESTRE', 'MESTRE INSTALADO'].includes(grauUpper);
+      });
 
       setMembros(membrosFiltrados);
     } catch (error) {
@@ -252,7 +253,7 @@ export default function MensalidadesPage() {
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push('/dashboard')}
               className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
             >
               <ArrowLeft size={20} />
